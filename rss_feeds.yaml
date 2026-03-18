@@ -1,0 +1,183 @@
+# Weekly Tech Radar - Sources RSS/Atom
+# Dernière mise à jour : 2026-03-18
+# Total : 25 sources (testées et fonctionnelles)
+
+# =============================================================================
+# CLOUD / DEVOPS / INFRASTRUCTURE
+# =============================================================================
+cloud_devops:
+
+  - name: "AWS News Blog"
+    url: "https://aws.amazon.com/blogs/aws/feed/"
+    lang: "EN"
+    description: "Blog officiel AWS - annonces produits, nouvelles features, tutorials"
+    category: "cloud"
+
+  - name: "AWS DevOps Blog"
+    url: "https://aws.amazon.com/blogs/devops/feed/"
+    lang: "EN"
+    description: "CI/CD, IaC, automation et best practices DevOps sur AWS"
+    category: "cloud/devops"
+
+  - name: "Azure Blog"
+    url: "https://azure.microsoft.com/en-us/blog/feed/"
+    lang: "EN"
+    description: "Annonces Azure, AKS, services cloud Microsoft"
+    category: "cloud"
+
+  - name: "Kubernetes Blog"
+    url: "https://kubernetes.io/feed.xml"
+    lang: "EN"
+    description: "Blog officiel Kubernetes - releases, KEPs, features, security advisories"
+    category: "devops/orchestration"
+
+  - name: "CNCF Blog"
+    url: "https://www.cncf.io/blog/feed/"
+    lang: "EN"
+    description: "Cloud Native Computing Foundation - projets graduated/incubating, écosystème cloud-native"
+    category: "devops/cloud-native"
+
+  - name: "HashiCorp Blog"
+    url: "https://www.hashicorp.com/blog/feed.xml"
+    lang: "EN"
+    description: "Terraform, Vault, Consul, Nomad, Packer - IaC et secrets management"
+    category: "devops/iac"
+
+  - name: "Docker Blog"
+    url: "https://www.docker.com/blog/feed/"
+    lang: "EN"
+    description: "Containerisation, Docker Desktop, Docker Hub, best practices"
+    category: "devops/containers"
+
+# =============================================================================
+# AI / ML
+# =============================================================================
+ai_ml:
+
+  - name: "Hugging Face Blog"
+    url: "https://huggingface.co/blog/feed.xml"
+    lang: "EN"
+    description: "Open-source ML, transformers, diffusion models, datasets, démos pratiques"
+    category: "ai/open-source"
+
+  - name: "Simon Willison's Weblog"
+    url: "https://simonwillison.net/atom/everything/"
+    lang: "EN"
+    description: "LLMs en pratique, outils AI, datasette, analyses techniques sans hype"
+    category: "ai/practical"
+
+# =============================================================================
+# SÉCURITÉ
+# =============================================================================
+security:
+
+  - name: "The Hacker News"
+    url: "https://feeds.feedburner.com/TheHackersNews"
+    lang: "EN"
+    description: "CVEs, malware, vulnérabilités, threat intelligence, breaking security news"
+    category: "security/news"
+
+  - name: "BleepingComputer"
+    url: "https://www.bleepingcomputer.com/feed/"
+    lang: "EN"
+    description: "Ransomware, vulnérabilités, malware, patches de sécurité, guides"
+    category: "security/news"
+
+  - name: "Dark Reading"
+    url: "https://www.darkreading.com/rss.xml"
+    lang: "EN"
+    description: "Enterprise security, cloud security, AppSec, threat intelligence"
+    category: "security/enterprise"
+
+# =============================================================================
+# LANGAGES / FRAMEWORKS
+# =============================================================================
+languages_frameworks:
+
+  - name: "Go Blog (officiel)"
+    url: "https://go.dev/blog/feed.atom"
+    lang: "EN"
+    description: "Blog officiel Go - releases, proposals, deep dives techniques"
+    category: "lang/go"
+
+  - name: "Rust Blog (officiel)"
+    url: "https://blog.rust-lang.org/feed.xml"
+    lang: "EN"
+    description: "Blog officiel Rust - releases, éditions, RFC majeures"
+    category: "lang/rust"
+
+  - name: "Real Python"
+    url: "https://realpython.com/atom.xml"
+    lang: "EN"
+    description: "Tutorials Python de qualité, du débutant à l'avancé, best practices"
+    category: "lang/python"
+
+  - name: "Python Insider"
+    url: "https://blog.python.org/feeds/posts/default"
+    lang: "EN"
+    description: "Blog officiel Python core devs - releases, PEPs, governance"
+    category: "lang/python"
+
+# =============================================================================
+# BUSINESS / POLITIQUE TECH
+# =============================================================================
+business_politics:
+
+  - name: "TechCrunch"
+    url: "https://techcrunch.com/feed/"
+    lang: "EN"
+    description: "Startups, fundraising, acquisitions, produits tech, venture capital"
+    category: "business/startups"
+
+  - name: "Ars Technica"
+    url: "https://feeds.arstechnica.com/arstechnica/index"
+    lang: "EN"
+    description: "Tech en profondeur - policy, science, gadgets, analyses techniques et business"
+    category: "business/tech-analysis"
+
+  - name: "The Verge"
+    url: "https://www.theverge.com/rss/index.xml"
+    lang: "EN"
+    description: "Tech, culture, science - régulation plateformes, antitrust, privacy"
+    category: "business/tech-culture"
+
+  - name: "FrenchWeb"
+    url: "https://www.frenchweb.fr/feed"
+    lang: "FR"
+    description: "Écosystème startup français, levées de fonds, transformation digitale, interviews"
+    category: "business/startups-fr"
+
+# =============================================================================
+# TECH GÉNÉRALISTE (MIX BUSINESS + TECHNIQUE)
+# =============================================================================
+general_tech:
+
+  - name: "The Register"
+    url: "https://www.theregister.com/headlines.atom"
+    lang: "EN"
+    description: "Actualité IT avec un angle business et une dose d'humour britannique"
+    category: "general/it-news"
+
+  - name: "Le Monde Informatique"
+    url: "https://www.lemondeinformatique.fr/flux-rss/rss.xml"
+    lang: "FR"
+    description: "Actualité IT entreprise France - cloud, cybersécurité, data, infrastructure"
+    category: "general/it-news-fr"
+
+  - name: "Next (ex-Next INpact)"
+    url: "https://next.ink/feed/"
+    lang: "FR"
+    description: "Numérique, droits, libertés, régulation - analyses techniques et juridiques"
+    category: "general/tech-policy-fr"
+
+  - name: "ZDNet France"
+    url: "https://www.zdnet.fr/feeds/rss/"
+    lang: "FR"
+    description: "Actualité tech entreprise, cybersécurité, cloud, AI en français"
+    category: "general/it-news-fr"
+
+  - name: "LinuxFr.org"
+    url: "https://linuxfr.org/news.atom"
+    lang: "FR"
+    description: "Communauté francophone Linux/open-source, dépêches techniques de qualité"
+    category: "general/opensource-fr"

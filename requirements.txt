@@ -1,0 +1,4 @@
+feedparser
+anthropic
+pyyaml
+jinja2
