@@ -84,6 +84,15 @@ Respond with ONLY valid JSON:
 Articles:
 {articles}"""
 
+STOP_WORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "for", "on",
+              "with", "is", "are", "its", "by", "from", "how", "what", "why",
+              "new", "now", "can", "that", "this", "it", "as", "at", "be"}
+
+def title_keywords(title):
+    """Extrait les mots significatifs d'un titre (sans stop words)."""
+    words = set(title.lower().replace("—", " ").replace("-", " ").split())
+    return words - STOP_WORDS
+
 def extract_json(text):
     """Extrait le JSON d'une réponse Claude (gère blocs ```json et texte parasite)."""
     text = text.strip()
@@ -254,13 +263,6 @@ if __name__ == "__main__":
         print(f"  {cat}: {count} -> {kept}")
 
     # Dedup Python par mots-clés significatifs (filet de sécurité)
-    STOP_WORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "for", "on",
-                  "with", "is", "are", "its", "by", "from", "how", "what", "why",
-                  "new", "now", "can", "that", "this", "it", "as", "at", "be"}
-    def title_keywords(title):
-        words = set(title.lower().replace("—", " ").replace("-", " ").split())
-        return words - STOP_WORDS
-
     final = []
     seen_keywords = []
     for article in filtered:

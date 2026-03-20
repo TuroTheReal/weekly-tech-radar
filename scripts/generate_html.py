@@ -140,9 +140,20 @@ def render_card(enriched, grouped, lang):
     week = enriched['week']
     year = enriched['year']
     week_label = f"Week {week}" if lang == 'en' else f"Semaine {week}"
-    date_iso = enriched['date_end']
-    date = datetime.strptime(date_iso, "%Y-%m-%d")
-    date_display = f"{MONTHS['en'][date.month]} {date.day}, {date.year}" if lang == 'en' else f"{date.day} {MONTHS['fr'][date.month]} {date.year}"
+    date_start = datetime.strptime(enriched['date_start'], "%Y-%m-%d")
+    date_end = datetime.strptime(enriched['date_end'], "%Y-%m-%d")
+    if date_start.month == date_end.month:
+        # Même mois : "March 11 - 18, 2026" / "11 - 18 mars 2026"
+        if lang == 'en':
+            date_display = f"{MONTHS['en'][date_start.month]} {date_start.day} - {date_end.day}, {date_end.year}"
+        else:
+            date_display = f"{date_start.day} - {date_end.day} {MONTHS['fr'][date_start.month]} {date_end.year}"
+    else:
+        # Mois différents : "February 28 - March 6, 2026" / "28 février - 6 mars 2026"
+        if lang == 'en':
+            date_display = f"{MONTHS['en'][date_start.month]} {date_start.day} - {MONTHS['en'][date_end.month]} {date_end.day}, {date_end.year}"
+        else:
+            date_display = f"{date_start.day} {MONTHS['fr'][date_start.month]} - {date_end.day} {MONTHS['fr'][date_end.month]} {date_end.year}"
     article_count = len(enriched['articles'])
     filled = ""
     filled += f'''
@@ -190,9 +201,7 @@ def generate_edition(enriched, grouped, portfolio_dir):
     article_count = len(enriched['articles'])
     week = enriched['week']
     year = enriched['year']
-    date_iso = enriched['date_end']
     filename = f"{year}-week-{week:02d}.html"
-    date = datetime.strptime(date_iso, "%Y-%m-%d")
 
     if week > 1:
         prev_week = week - 1
@@ -218,15 +227,41 @@ def generate_edition(enriched, grouped, portfolio_dir):
             radar_nav = ""
 
         template_path = portfolio_dir / lang / TECH_RADAR_DIR / TEMPLATE_NAME
-        # EN: "March 16, 2026"
-        # FR: "16 mars 2026"
-        date_display = f"{MONTHS['en'][date.month]} {date.day}, {date.year}" if lang == 'en' else f"{date.day} {MONTHS['fr'][date.month]} {date.year}"
+        date_start = datetime.strptime(enriched['date_start'], "%Y-%m-%d")
+        date_end = datetime.strptime(enriched['date_end'], "%Y-%m-%d")
+        if date_start.month == date_end.month:
+            if lang == 'en':
+                date_display = f"{MONTHS['en'][date_start.month]} {date_start.day} - {date_end.day}, {date_end.year}"
+            else:
+                date_display = f"{date_start.day} - {date_end.day} {MONTHS['fr'][date_start.month]} {date_end.year}"
+        else:
+            if lang == 'en':
+                date_display = f"{MONTHS['en'][date_start.month]} {date_start.day} - {MONTHS['en'][date_end.month]} {date_end.day}, {date_end.year}"
+            else:
+                date_display = f"{date_start.day} {MONTHS['fr'][date_start.month]} - {date_end.day} {MONTHS['fr'][date_end.month]} {date_end.year}"
 
         highlights = []
         for category in grouped:
-            highlights.append(grouped[category][0]['title'])
+            highlights.append(grouped[category][0]['title'] if lang == 'en' else grouped[category][0].get('title_fr', grouped[category][0]['title']))
         suffix = " and more." if lang == 'en' else " et plus."
         meta_description = ", ".join(highlights[:4]) + suffix
+
+        # SEO title : "Tech Radar Week 12 — Cloud, DevOps, Security & AI News (March 2026)"
+        cat_labels = [CATEGORY_MAP[c][lang] for c in grouped]
+        if lang == 'en':
+            month_name = MONTHS['en'][date_end.month]
+            if len(cat_labels) > 1:
+                cat_str = ", ".join(cat_labels[:-1]) + " & " + cat_labels[-1]
+            else:
+                cat_str = cat_labels[0]
+            seo_title = f"Tech Radar Week {week} — {cat_str} News ({month_name} {year})"
+        else:
+            month_name = MONTHS['fr'][date_end.month]
+            if len(cat_labels) > 1:
+                cat_str = ", ".join(cat_labels[:-1]) + " & " + cat_labels[-1]
+            else:
+                cat_str = cat_labels[0]
+            seo_title = f"Tech Radar Semaine {week} — Actu {cat_str} ({month_name} {year})"
 
         with open(template_path, 'r') as f:
             html = f.read()
@@ -235,10 +270,11 @@ def generate_edition(enriched, grouped, portfolio_dir):
 
         html = html.replace("{{WEEK}}", str(week))
         html = html.replace("{{FILENAME}}", filename)
-        html = html.replace("{{DATE_ISO}}", date_iso)
+        html = html.replace("{{DATE_ISO}}", enriched['date_end'])
         html = html.replace("{{DATE_DISPLAY}}", date_display)
         html = html.replace("{{ARTICLE_COUNT}}", str(article_count))
         html = html.replace("{{META_DESCRIPTION}}", meta_description)
+        html = html.replace("{{SEO_TITLE}}", seo_title)
         html = html.replace("{{RADAR_CONTENT}}", content)
         html = html.replace("{{RADAR_NAV}}", radar_nav)
 
