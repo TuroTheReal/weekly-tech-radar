@@ -5,12 +5,14 @@ from datetime import datetime, timedelta
 SCRIPT_DIR = Path(__file__).parent
 SELECT_PROMPT = """Tu es un assistant de veille technologique pour un profil DevOps/Cloud Engineer.
 
-Tu reçois la liste des articles tech de la semaine (indice, source, catégorie, titre).
-Sélectionne les 20 articles les plus pertinents et importants.
+Tu reçois la liste des articles tech de la semaine (indice, source, titre).
+Sélectionne les 40 articles les plus pertinents et importants.
 
 Règles :
-- Minimum 3 articles par catégorie SI disponibles, sinon redistribuer
+- 40 articles
 - Privilégie les infos à impact (nouvelles features, failles majeures, mouvements business, sorties de version)
+- À pertinence égale, priorise dans cet ordre : Business > DevOps = Cloud > Tech > Security > AI/ML
+- Privilégie la diversité thématique (cloud, devops, sécurité, IA, business, tech)
 - Ignore le bruit (quizzes, tutos basiques, événements mineurs, articles sponsorisés)
 - Pas de doublons (même sujet couvert par plusieurs sources = garder 1 seul)
 
@@ -22,11 +24,10 @@ Articles :
 
 SUMMARIZE_PROMPT = """Tu es un assistant de veille technologique.
 
-Pour chaque article ci-dessous, écris un résumé factuel de 1-2 lignes en français ET en anglais.
+Pour CHAQUE article ci-dessous, écris un résumé factuel de 1-2 lignes en français ET en anglais.
+Résume TOUS les articles, sans en ignorer aucun.
 Pas d'interprétation, pas d'éditorial, uniquement les faits.
-Attribue une catégorie parmi : Cloud, DevOps, Sécurité, AI/ML, Business, Tech
-
-Ordre des catégories dans la sortie : Business, Cloud, DevOps, Tech, puis le reste.
+Attribue une catégorie parmi : Cloud, DevOps, Security, AI/ML, Business, Tech
 
 Réponds UNIQUEMENT en JSON valide :
 [
@@ -43,6 +44,14 @@ Réponds UNIQUEMENT en JSON valide :
 Articles :
 {articles}"""
 
+def extract_json(text):
+    """Extrait le JSON d'une réponse Claude (gère les blocs ```json)."""
+    text = text.strip()
+    if text.startswith("```"):
+        # Virer la première ligne (```json) et la dernière (```)
+        lines = text.split("\n")
+        text = "\n".join(lines[1:-1])
+    return json.loads(text)
 
 def load_json(path):
     """Charge un fichier JSON.
@@ -68,7 +77,7 @@ def select_articles(client, articles):
     """
     articles_text = ""
     for i, article in enumerate(articles):
-        articles_text += f"{i}. [{article['source']}] ({article['category']}) {article['title']}\n"
+        articles_text += f"{i}. [{article['source']}] {article['title']}\n"
 
     prompt = SELECT_PROMPT.format(articles=articles_text)
 
@@ -77,7 +86,7 @@ def select_articles(client, articles):
                                        messages=[{"role": "user", "content": prompt}])
 
     result = response.content[0].text
-    return json.loads(result)
+    return extract_json(result)
 
 def summarize_articles(client, selected):
     """Envoie les 20 articles sélectionnés à Claude API pour résumé bilingue et catégorisation.
@@ -102,11 +111,11 @@ Résumé brut : {article.get('summary_raw', '')}
     prompt = SUMMARIZE_PROMPT.format(articles=articles_text)
 
     response = client.messages.create(model="claude-haiku-4-5-20251001",
-                                      max_tokens=4096,
+                                      max_tokens=8192,
                                       messages=[{"role": "user", "content": prompt}])
 
     result = response.content[0].text
-    return json.loads(result)
+    return extract_json(result)
 
 def save_json(enriched, week, year, date_start, date_end):
     """Sauvegarde les articles enrichis dans data/YYYY/week-XX-enriched.json.
@@ -142,8 +151,34 @@ if __name__ == "__main__":
     path = SCRIPT_DIR.parent / "data" / str(year) / f"week-{week:02d}.json"
 
     articles = load_json(path)
+    print(f"Loaded {len(articles['articles'])} articles from week {articles['week']}")
+
     client = anthropic.Anthropic()
     indices = select_articles(client, articles['articles'])
+    print(f"Selected {len(indices)} articles")
+
     selected = [articles['articles'][i] for i in indices]
     enriched = summarize_articles(client, selected)
-    save_json(enriched, articles['week'], articles['year'], articles['date_start'], articles['date_end'])
+    print(f"Summarized {len(enriched)} articles")
+
+    # Post-processing : limiter par catégorie
+    CATEGORY_LIMITS = {
+        "Cloud": 6, "DevOps": 6, "Tech": 6, "Business": 6,
+        "Security": 4, "AI/ML": 4,
+    }
+    category_count = {}
+    filtered = []
+    for article in enriched:
+        cat = article['category']
+        max_cat = CATEGORY_LIMITS.get(cat, 4)
+        category_count[cat] = category_count.get(cat, 0) + 1
+        if category_count[cat] <= max_cat:
+            filtered.append(article)
+    print(f"Filtered: {len(enriched)} -> {len(filtered)} articles")
+    for cat, count in category_count.items():
+        max_cat = CATEGORY_LIMITS.get(cat, 4)
+        kept = min(count, max_cat)
+        print(f"  {cat}: {count} -> {kept}")
+
+    save_json(filtered, articles['week'], articles['year'], articles['date_start'], articles['date_end'])
+    print(f"Saved to data/{articles['year']}/week-{articles['week']:02d}-enriched.json")

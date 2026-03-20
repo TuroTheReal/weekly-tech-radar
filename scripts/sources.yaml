@@ -46,6 +46,24 @@ sources:
     description: "Containerisation, Docker Desktop, Docker Hub, best practices"
     category: "devops/containers"
 
+  - name: "Grafana Blog"
+    url: "https://grafana.com/blog/index.xml"
+    lang: "en"
+    description: "Grafana, Loki, Mimir, Tempo, Alloy - observabilité stack complète"
+    category: "devops/observability"
+
+  - name: "GitHub Blog"
+    url: "https://github.blog/feed/"
+    lang: "en"
+    description: "GitHub Actions, Copilot, security advisories, features platform"
+    category: "devops/cicd"
+
+  - name: "GitLab Blog"
+    url: "https://about.gitlab.com/atom.xml"
+    lang: "en"
+    description: "GitLab CI/CD, DevSecOps, releases, features platform"
+    category: "devops/cicd"
+
   # --- AI / ML ---
   - name: "Hugging Face Blog"
     url: "https://huggingface.co/blog/feed.xml"

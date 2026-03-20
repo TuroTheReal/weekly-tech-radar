@@ -1,10 +1,12 @@
 # ├── CATEGORY_MAP          — dict constant (mapping catégorie → css + labels)
-# ├── load_enriched()       — charger le JSON enrichi
-# ├── group_by_category()   — grouper articles par catégorie, dans le bon ordre
-# ├── render_edition()      — générer le bloc HTML des articles (entre les marqueurs)
-# ├── generate_edition()    — lire le HTML existant, remplacer le contenu, écrire EN + FR
-# ├── update_index()        — ajouter la nouvelle card dans l'index EN + FR
-# ├── update_prev_edition() — ajouter lien "next" sur l'édition précédente
+# ├── load_json()           — charger un fichier JSON
+# ├── group_by_category()   — grouper articles par catégorie
+# ├── render_edition()      — générer le HTML des articles d'une édition
+# ├── render_card()         — générer le HTML d'une card (listing + home)
+# ├── generate_edition()    — créer le fichier HTML d'une édition EN + FR
+# ├── update_index()        — ajouter la nouvelle card dans le listing EN + FR
+# ├── update_home()         — mettre à jour les 2 cards de la home page EN + FR
+# ├── update_nav()          — ajouter lien "next" sur l'édition précédente EN + FR
 # └── main                  — orchestrer tout
 
 import json, sys
@@ -17,12 +19,12 @@ TEMPLATE_NAME = "edition-template.html"
 INDEX_NAME = "index.html"
 CTA = {"en": "Read article →", "fr": "Lire l'article →"}
 CATEGORY_MAP = {
+    "Business": {"css": "business",   "en": "Business", "fr": "Business"},
     "Cloud":    {"css": "cloud",      "en": "Cloud",    "fr": "Cloud"},
     "DevOps":   {"css": "devops",     "en": "DevOps",   "fr": "DevOps"},
-    "Sécurité": {"css": "secu",       "en": "Security", "fr": "Sécurité"},
-    "AI/ML":    {"css": "ia",         "en": "AI",       "fr": "IA"},
-    "Business": {"css": "business",   "en": "Business", "fr": "Business"},
     "Tech":     {"css": "frameworks", "en": "Tech",     "fr": "Tech"},
+    "Security": {"css": "secu",       "en": "Security", "fr": "Sécurité"},
+    "AI/ML":    {"css": "ia",         "en": "AI",       "fr": "IA"},
 }
 MONTHS = {
     "en": ["", "January", "February", "March", "April", "May", "June",
@@ -44,14 +46,47 @@ def load_json(path):
         return json.load(f)
 
 def group_by_category(enriched):
+    """Regroupe les articles par catégorie, dans l'ordre de CATEGORY_MAP.
+
+    Args:
+        enriched (list): Liste d'articles (chacun a une clé 'category')
+
+    Returns:
+        dict: {"Business": [...], "Cloud": [...], ...} dans l'ordre de CATEGORY_MAP
+    """
     grouped = {}
     for article in enriched:
         if article['category'] not in grouped:
             grouped[article['category']] = []
         grouped[article['category']].append(article)
-    return grouped
+    # Réordonner selon CATEGORY_MAP
+    ordered = {}
+    for category in CATEGORY_MAP:
+        if category in grouped:
+            ordered[category] = grouped[category]
+    return ordered
 
 def render_edition(grouped, lang):
+    """Génère le HTML des articles pour une page édition.
+
+    Injecté entre <!-- RADAR_CONTENT --> et <!-- /RADAR_CONTENT -->
+    dans edition-template.html.
+
+    Composant produit par catégorie :
+        <h2><span class="radar-tag radar-tag--cloud">Cloud</span></h2>
+        <div class="radar-edition-item">
+            <h3>Titre article</h3>
+            <p>Résumé</p>
+            <a href="..." class="radar-edition-source">Read article</a>
+        </div>
+
+    Args:
+        grouped (dict): Articles groupés par catégorie
+        lang (str): "en" ou "fr"
+
+    Returns:
+        str: Bloc HTML des articles
+    """
     filled = ""
     for category in grouped:
         category_info = CATEGORY_MAP[category]
@@ -73,6 +108,35 @@ def render_edition(grouped, lang):
     return filled
 
 def render_card(enriched, grouped, lang):
+    """Génère le HTML d'une card pour le listing et la home page.
+
+    Utilisé dans :
+    - tech-radar/index.html entre <!-- RADAR_CARDS --> / <!-- /RADAR_CARDS -->
+    - home index.html entre <!-- RADAR_HOME --> / <!-- /RADAR_HOME -->
+
+    Composant produit :
+        <a href="/en/tech-radar/2026-week-12.html" class="radar-card">
+            <div class="radar-card-header">
+                <span class="radar-card-week">Week 12</span>
+                <time class="radar-card-date">March 20, 2026</time>
+            </div>
+            <ul class="radar-card-list">
+                <li class="radar-card-item">
+                    <span class="radar-tag radar-tag--cloud">Cloud</span>
+                    <span class="radar-card-text">Titre 1er article</span>
+                </li>
+            </ul>
+            <span class="radar-card-count">20 articles</span>
+        </a>
+
+    Args:
+        enriched (dict): Données semaine (week, year, date_end, articles)
+        grouped (dict): Articles groupés par catégorie
+        lang (str): "en" ou "fr"
+
+    Returns:
+        str: HTML de la card
+    """
     week = enriched['week']
     year = enriched['year']
     week_label = f"Week {week}" if lang == 'en' else f"Semaine {week}"
@@ -80,8 +144,6 @@ def render_card(enriched, grouped, lang):
     date = datetime.strptime(date_iso, "%Y-%m-%d")
     date_display = f"{MONTHS['en'][date.month]} {date.day}, {date.year}" if lang == 'en' else f"{date.day} {MONTHS['fr'][date.month]} {date.year}"
     article_count = len(enriched['articles'])
-
-
     filled = ""
     filled += f'''
 <a href="/{lang}/{TECH_RADAR_DIR}/{year}-week-{week:02d}.html" class="radar-card">
@@ -111,6 +173,20 @@ def render_card(enriched, grouped, lang):
     return filled
 
 def generate_edition(enriched, grouped, portfolio_dir):
+    """Crée le fichier HTML d'une édition (EN + FR).
+
+    Lit edition-template.html, remplace les placeholders, écrit le fichier.
+    Fichier produit : {portfolio_dir}/{lang}/tech-radar/2026-week-12.html
+
+    Placeholders remplacés :
+        {{WEEK}}, {{FILENAME}}, {{DATE_ISO}}, {{DATE_DISPLAY}},
+        {{ARTICLE_COUNT}}, {{META_DESCRIPTION}}, {{RADAR_CONTENT}}, {{RADAR_NAV}}
+
+    Args:
+        enriched (dict): Données de la semaine
+        grouped (dict): Articles groupés par catégorie
+        portfolio_dir (Path): Chemin vers le repo Portfolio
+    """
     article_count = len(enriched['articles'])
     week = enriched['week']
     year = enriched['year']
@@ -172,6 +248,17 @@ def generate_edition(enriched, grouped, portfolio_dir):
             f.write(html)
 
 def update_index(enriched, grouped, portfolio_dir):
+    """Ajoute la nouvelle card dans le listing tech-radar/index.html (EN + FR).
+
+    Injection entre <!-- RADAR_CARDS --> et <!-- /RADAR_CARDS -->.
+    Logique FIFO : max 12 cards, supprime la plus ancienne si dépassement.
+    Applique radar-card--hidden sur les cards 5+.
+
+    Args:
+        enriched (dict): Données de la semaine
+        grouped (dict): Articles groupés par catégorie
+        portfolio_dir (Path): Chemin vers le repo Portfolio
+    """
     for lang in ['en', 'fr']:
         index_path = portfolio_dir / lang / TECH_RADAR_DIR / INDEX_NAME
         with open(index_path, 'r') as f:
@@ -211,6 +298,16 @@ def update_index(enriched, grouped, portfolio_dir):
             f.write(new_html)
 
 def update_home(enriched, grouped, portfolio_dir):
+    """Met à jour les 2 cards Tech Radar sur la home page (EN + FR).
+
+    Injection entre <!-- RADAR_HOME --> et <!-- /RADAR_HOME -->.
+    Garde max 2 cards : nouvelle + ancienne première.
+
+    Args:
+        enriched (dict): Données de la semaine
+        grouped (dict): Articles groupés par catégorie
+        portfolio_dir (Path): Chemin vers le repo Portfolio
+    """
     for lang in ['en', 'fr']:
         index_path = portfolio_dir / lang / INDEX_NAME
         with open(index_path, 'r') as f:
@@ -232,6 +329,21 @@ def update_home(enriched, grouped, portfolio_dir):
             f.write(new_html)
 
 def update_nav(enriched, portfolio_dir):
+    """Ajoute le lien 'next' sur l'édition précédente (EN + FR).
+
+    Injection entre <!-- RADAR_NAV --> et <!-- /RADAR_NAV -->
+    sur le fichier de l'édition N-1.
+
+    Composant ajouté :
+        <a href="/en/tech-radar/2026-week-12.html" class="article-nav-link article-nav-next">
+            <span class="article-nav-label">Next edition</span>
+            <span class="article-nav-title">Week 12</span>
+        </a>
+
+    Args:
+        enriched (dict): Données de la semaine
+        portfolio_dir (Path): Chemin vers le repo Portfolio
+    """
     week = enriched['week']
     year = enriched['year']
     filename = f"{year}-week-{week:02d}.html"
@@ -283,8 +395,17 @@ if __name__ == '__main__':
     path = SCRIPT_DIR.parent / "data" / str(year) / f"week-{week:02d}-enriched.json"
 
     enriched = load_json(path)
+    print(f"Loaded week {enriched['week']} ({len(enriched['articles'])} articles)")
+
     grouped = group_by_category(enriched['articles'])
     generate_edition(enriched, grouped, portfolio_dir)
+    print(f"Generated edition: {year}-week-{week:02d}.html")
+
     update_index(enriched, grouped, portfolio_dir)
+    print("Updated index (listing)")
+
     update_home(enriched, grouped, portfolio_dir)
+    print("Updated home page")
+
     update_nav(enriched, portfolio_dir)
+    print("Updated nav links")

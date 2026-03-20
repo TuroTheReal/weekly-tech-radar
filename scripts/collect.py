@@ -84,6 +84,7 @@ if __name__ == "__main__":
     for source in sources:
         feed = fetch_feed(source)
         recent = filter_recent(feed.entries)
+        print(f"  {source['name']}: {len(recent)} articles")
         for article in recent:
             weekly_articles.append({
                 "title": article.title,
@@ -94,4 +95,14 @@ if __name__ == "__main__":
                 "published": datetime.fromtimestamp(mktime(article.get("published_parsed") or article.get("updated_parsed"))).strftime("%Y-%m-%d"),
                 "summary_raw": article.get("summary", "")
             })
-    save_json(weekly_articles)
+            
+    # Déduplication par URL
+    seen_urls = set()
+    unique_articles = []
+    for article in weekly_articles:
+        if article['url'] not in seen_urls:
+            seen_urls.add(article['url'])
+            unique_articles.append(article)
+    print(f"Collected {len(weekly_articles)} articles from {len(sources)} sources")
+    print(f"Dedup: {len(weekly_articles)} -> {len(unique_articles)} articles")
+    save_json(unique_articles)
