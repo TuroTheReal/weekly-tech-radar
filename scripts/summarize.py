@@ -3,55 +3,100 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 SCRIPT_DIR = Path(__file__).parent
-SELECT_PROMPT = """Tu es un assistant de veille technologique pour un profil DevOps/Cloud Engineer.
+SELECT_PROMPT = """You are a tech watch assistant for a DevOps/Cloud Engineer profile.
 
-Tu reçois la liste des articles tech de la semaine (indice, source, titre).
-Sélectionne les 40 articles les plus pertinents et importants.
+You receive a list of tech articles from the past week (index, source, title).
+Select the 40 most relevant and impactful articles.
 
-Règles :
-- 40 articles
-- Privilégie les infos à impact (nouvelles features, failles majeures, mouvements business, sorties de version)
-- À pertinence égale, priorise dans cet ordre : Business > DevOps = Cloud > Tech > Security > AI/ML
-- Privilégie la diversité thématique (cloud, devops, sécurité, IA, business, tech)
-- Ignore le bruit (quizzes, tutos basiques, événements mineurs, articles sponsorisés)
-- Pas de doublons (même sujet couvert par plusieurs sources = garder 1 seul)
+Selection criteria:
+- Prioritize high-impact news: new cloud/devops features, critical vulnerabilities (CVSS 8+), major acquisitions, version releases, pricing changes
+- When relevance is equal, prioritize in this order: Business > DevOps = Cloud > Tech > Security > AI/ML
+- Maximize thematic diversity across all domains
+- Ignore noise: quizzes, basic tutorials, event announcements, sponsored content, opinion pieces, listicles
 
-Réponds UNIQUEMENT en JSON valide, une liste des indices sélectionnés :
+Respond with ONLY valid JSON — a list of 40 selected indices:
 [0, 5, 12, ...]
 
-Articles :
+Articles:
 {articles}"""
 
-SUMMARIZE_PROMPT = """Tu es un assistant de veille technologique.
+DEDUP_PROMPT = """You receive a list of tech articles (index, source, title).
+Some articles may cover the SAME EVENT or SAME ANNOUNCEMENT from different sources.
 
-Pour CHAQUE article ci-dessous, écris un résumé factuel de 1-2 lignes en français ET en anglais.
-Résume TOUS les articles, sans en ignorer aucun.
-Pas d'interprétation, pas d'éditorial, uniquement les faits.
-Attribue une catégorie parmi : Cloud, DevOps, Security, AI/ML, Business, Tech
+Your task: identify duplicates and keep ONLY ONE article per topic (the most informative one).
 
-Réponds UNIQUEMENT en JSON valide :
+Rules:
+- Same event/announcement/fact = DUPLICATES, regardless of angle or source
+- An opinion piece about an event AND a factual report about that same event = DUPLICATES
+- Two articles mentioning the same company about DIFFERENT events = NOT duplicates
+
+Examples:
+- DUPLICATES (same event):
+  3. [Ars Technica] OpenAI acquires Python toolmaker Astral
+  8. [The Register] OpenAI buys Astral, maker of uv and ruff
+  12. [Simon Willison] Thoughts on OpenAI acquiring Astral
+  → Same event (Astral acquisition). Keep only 1.
+
+- NOT DUPLICATES (different events):
+  3. [TechCrunch] OpenAI acquires Astral for Python tooling
+  7. [The Register] OpenAI signs $2B Pentagon AI contract
+  → Two different events about OpenAI. Keep both.
+
+Respond with ONLY valid JSON — the list of indices to KEEP (one per topic):
+[0, 2, 3, 5, ...]
+
+Articles:
+{articles}"""
+
+SUMMARIZE_PROMPT = """You are a tech watch assistant for a DevOps/Cloud Engineer.
+
+For EACH article below, write a factual 1-2 line summary in both French and English.
+Use the provided raw summary to extract key facts. Summarize ALL articles without exception.
+Also provide a French translation of the title.
+
+Summary rules:
+- Factual only: no opinions, no editorial, no "it's worth noting"
+- Include the main fact and its concrete impact when applicable
+- BAD: "Report on the state of open source on Hugging Face"
+- GOOD: "Hugging Face downloads grew 60% in 6 months, driven by diffusion models"
+
+Categories (assign exactly one): Cloud, DevOps, Security, AI/ML, Business, Tech
+- Cloud: cloud services (AWS, Azure, GCP), infrastructure, pricing, data centers
+- DevOps: CI/CD, containers, orchestration, IaC, monitoring, observability
+- Security: CVEs, vulnerabilities, malware, patches, compliance
+- AI/ML: models, ML frameworks, LLMs, AI tools
+- Business: acquisitions, fundraising, corporate strategy, regulation
+- Tech: languages, frameworks, OS, dev tools, releases
+
+Respond with ONLY valid JSON:
 [
   {{
-    "title": "titre original",
-    "url": "url originale",
-    "source": "nom de la source",
+    "title": "original title",
+    "title_fr": "titre traduit en français",
+    "url": "original url",
+    "source": "source name",
     "summary_fr": "résumé factuel en français",
-    "summary_en": "factual summary in english",
-    "category": "catégorie"
+    "summary_en": "factual summary in English",
+    "category": "category"
   }}
 ]
 
-Articles :
+Articles:
 {articles}"""
 
 def extract_json(text):
-    """Extrait le JSON d'une réponse Claude (gère les blocs ```json)."""
+    """Extrait le JSON d'une réponse Claude (gère blocs ```json et texte parasite)."""
     text = text.strip()
     if text.startswith("```"):
-        # Virer la première ligne (```json) et la dernière (```)
         lines = text.split("\n")
         text = "\n".join(lines[1:-1])
-    return json.loads(text)
+    # Trouver le JSON : premier [ ou { jusqu'au dernier ] ou }
+    start = min((text.find(c) for c in '[{' if text.find(c) != -1), default=0)
+    if text[start] == '[':
+        end = text.rfind(']') + 1
+    else:
+        end = text.rfind('}') + 1
+    return json.loads(text[start:end])
 
 def load_json(path):
     """Charge un fichier JSON.
@@ -66,14 +111,14 @@ def load_json(path):
         return json.load(f)
 
 def select_articles(client, articles):
-    """Envoie les titres à Claude API pour sélectionner les 20 plus pertinents.
+    """Envoie les titres à Claude API pour sélectionner les 40 plus pertinents.
 
     Args:
         client (anthropic.Anthropic): Client API Anthropic
-        articles (list): Liste complète des articles
+        articles (list): Liste complète des articles (~300+)
 
     Returns:
-        list: Indices des 20 articles sélectionnés
+        list: Indices des 40 articles sélectionnés
     """
     articles_text = ""
     for i, article in enumerate(articles):
@@ -88,12 +133,35 @@ def select_articles(client, articles):
     result = response.content[0].text
     return extract_json(result)
 
-def summarize_articles(client, selected):
-    """Envoie les 20 articles sélectionnés à Claude API pour résumé bilingue et catégorisation.
+def dedup_articles(client, selected):
+    """Envoie les articles sélectionnés à Claude API pour déduplication par sujet.
 
     Args:
         client (anthropic.Anthropic): Client API Anthropic
-        selected (list): Liste des 20 articles sélectionnés
+        selected (list): Liste des articles pré-sélectionnés (~40)
+
+    Returns:
+        list: Indices des articles à garder (1 par sujet)
+    """
+    articles_text = ""
+    for i, article in enumerate(selected):
+        articles_text += f"{i}. [{article['source']}] {article['title']}\n"
+
+    prompt = DEDUP_PROMPT.format(articles=articles_text)
+
+    response = client.messages.create(model="claude-haiku-4-5-20251001",
+                                       max_tokens=4096,
+                                       messages=[{"role": "user", "content": prompt}])
+
+    result = response.content[0].text
+    return extract_json(result)
+
+def summarize_articles(client, selected):
+    """Envoie les articles dédupliqués à Claude API pour résumé bilingue et catégorisation.
+
+    Args:
+        client (anthropic.Anthropic): Client API Anthropic
+        selected (list): Liste des articles dédupliqués (~25-35)
 
     Returns:
         list: Articles enrichis (summary_fr, summary_en, category)
@@ -158,7 +226,12 @@ if __name__ == "__main__":
     print(f"Selected {len(indices)} articles")
 
     selected = [articles['articles'][i] for i in indices]
-    enriched = summarize_articles(client, selected)
+
+    keep_indices = dedup_articles(client, selected)
+    deduped = [selected[i] for i in keep_indices]
+    print(f"Deduped: {len(selected)} -> {len(deduped)} articles")
+
+    enriched = summarize_articles(client, deduped)
     print(f"Summarized {len(enriched)} articles")
 
     # Post-processing : limiter par catégorie
@@ -180,5 +253,32 @@ if __name__ == "__main__":
         kept = min(count, max_cat)
         print(f"  {cat}: {count} -> {kept}")
 
-    save_json(filtered, articles['week'], articles['year'], articles['date_start'], articles['date_end'])
+    # Dedup Python par mots-clés significatifs (filet de sécurité)
+    STOP_WORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "for", "on",
+                  "with", "is", "are", "its", "by", "from", "how", "what", "why",
+                  "new", "now", "can", "that", "this", "it", "as", "at", "be"}
+    def title_keywords(title):
+        words = set(title.lower().replace("—", " ").replace("-", " ").split())
+        return words - STOP_WORDS
+
+    final = []
+    seen_keywords = []
+    for article in filtered:
+        kw = title_keywords(article['title'])
+        is_dup = False
+        for prev_kw in seen_keywords:
+            common = kw & prev_kw
+            # Si 3+ mots significatifs en commun → doublon
+            if len(common) >= 3:
+                is_dup = True
+                break
+        if not is_dup:
+            final.append(article)
+            seen_keywords.append(kw)
+        else:
+            print(f"  Python dedup: dropped '{article['title'][:60]}...'")
+
+    print(f"Final: {len(filtered)} -> {len(final)} articles")
+
+    save_json(final, articles['week'], articles['year'], articles['date_start'], articles['date_end'])
     print(f"Saved to data/{articles['year']}/week-{articles['week']:02d}-enriched.json")

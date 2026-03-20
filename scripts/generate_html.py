@@ -97,7 +97,7 @@ def render_edition(grouped, lang):
         for article in grouped[category]:
             summary = article['summary_en'] if lang == 'en' else article['summary_fr']
             url = article['url']
-            title = article['title']
+            title = article['title'] if lang == 'en' else article.get('title_fr', article['title'])
             filled += f'''
 <div class="radar-edition-item">
     <h3>{title}</h3>
@@ -158,7 +158,7 @@ def render_card(enriched, grouped, lang):
         category_info = CATEGORY_MAP[category]
         label = category_info[lang]
         css_class = category_info['css']
-        title = grouped[category][0]['title']
+        title = grouped[category][0]['title'] if lang == 'en' else grouped[category][0].get('title_fr', grouped[category][0]['title'])
         filled += f'''
         <li class="radar-card-item">
             <span class="radar-tag radar-tag--{css_class}">{label}</span>

@@ -90,12 +90,6 @@ sources:
     description: "Ransomware, vulnérabilités, malware, patches de sécurité, guides"
     category: "security/news"
 
-  - name: "Dark Reading"
-    url: "https://www.darkreading.com/rss.xml"
-    lang: "en"
-    description: "Enterprise security, cloud security, AppSec, threat intelligence"
-    category: "security/enterprise"
-
   # --- Langages / Frameworks ---
   - name: "Go Blog"
     url: "https://go.dev/blog/feed.atom"
