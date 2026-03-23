@@ -18,19 +18,20 @@ TECH_RADAR_DIR = "tech-radar"
 TEMPLATE_NAME = "edition-template.html"
 INDEX_NAME = "index.html"
 CTA = {"en": "Read article →", "fr": "Lire l'article →"}
+ALL_LABEL = {"en": "All", "fr": "Tous"}
 CATEGORY_MAP = {
     "Business": {"css": "business",   "en": "Business", "fr": "Business"},
     "Cloud":    {"css": "cloud",      "en": "Cloud",    "fr": "Cloud"},
     "DevOps":   {"css": "devops",     "en": "DevOps",   "fr": "DevOps"},
-    "Tech":     {"css": "frameworks", "en": "Tech",     "fr": "Tech"},
+    "Tech":     {"css": "tech",       "en": "Tech",     "fr": "Tech"},
     "Security": {"css": "secu",       "en": "Security", "fr": "Sécurité"},
     "AI/ML":    {"css": "ia",         "en": "AI",       "fr": "IA"},
 }
 MONTHS = {
     "en": ["", "January", "February", "March", "April", "May", "June",
            "July", "August", "September", "October", "November", "December"],
-    "fr": ["", "janvier", "février", "mars", "avril", "mai", "juin",
-           "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+    "fr": ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+           "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
 }
 
 def load_json(path):
@@ -98,11 +99,13 @@ def render_edition(grouped, lang):
             summary = article['summary_en'] if lang == 'en' else article['summary_fr']
             url = article['url']
             title = article['title'] if lang == 'en' else article.get('title_fr', article['title'])
+            aria_new_tab = "opens in new tab" if lang == 'en' else "s'ouvre dans un nouvel onglet"
+            aria_label = f"{link_text.replace(' →', '')} : {title} ({aria_new_tab})"
             filled += f'''
 <div class="radar-edition-item">
     <h3>{title}</h3>
     <p>{summary}</p>
-    <a href="{url}" target="_blank" rel="noopener noreferrer" class="radar-edition-source">{link_text}</a>
+    <a href="{url}" target="_blank" rel="noopener noreferrer" class="radar-edition-source" aria-label="{aria_label}">{link_text}</a>
 </div>
 '''
     return filled
@@ -268,6 +271,13 @@ def generate_edition(enriched, grouped, portfolio_dir):
 
         content = render_edition(grouped, lang)
 
+        # Boutons catégorie dynamiques (seulement les catégories présentes)
+        buttons = f'\t\t\t\t<button class="radar-filter-btn active" data-category="all" aria-pressed="true">{ALL_LABEL[lang]}</button>\n'
+        for cat in grouped:
+            cat_info = CATEGORY_MAP[cat]
+            buttons += f'\t\t\t\t<button class="radar-filter-btn" data-category="{cat_info["css"]}" aria-pressed="false">{cat_info[lang]}</button>\n'
+
+        html = html.replace("{{CATEGORY_BUTTONS}}", buttons)
         html = html.replace("{{WEEK}}", str(week))
         html = html.replace("{{FILENAME}}", filename)
         html = html.replace("{{DATE_ISO}}", enriched['date_end'])
@@ -304,6 +314,13 @@ def update_index(enriched, grouped, portfolio_dir):
         existing_cards, after = rest.split("<!-- /RADAR_CARDS -->", 1)
 
         new_card = render_card(enriched, grouped, lang)
+        # Supprimer la card existante de la même semaine (évite les doublons si relance)
+        filename = f"{enriched['year']}-week-{enriched['week']:02d}.html"
+        if filename in existing_cards:
+            parts = existing_cards.split('<a href=')
+            existing_cards = parts[0] + ''.join(
+                '<a href=' + p for p in parts[1:] if filename not in p.split('</a>')[0]
+            )
         all_cards = new_card + existing_cards
         # Compter les cards
         count = all_cards.count('class="radar-card"')
@@ -354,6 +371,15 @@ def update_home(enriched, grouped, portfolio_dir):
 
         new_card = render_card(enriched, grouped, lang)
 
+        # Supprimer la card existante de la même semaine (évite les doublons si relance)
+        filename = f"{enriched['year']}-week-{enriched['week']:02d}.html"
+        if filename in existing_cards:
+            parts = existing_cards.split('<a href=')
+            existing_cards = parts[0] + ''.join(
+                '<a href=' + p for p in parts[1:] if filename not in p.split('</a>')[0]
+            )
+
+        # Garder la première card restante (édition précédente)
         first_end = existing_cards.find('</a>')
         if first_end != -1:
             first_card = existing_cards[:first_end + len('</a>')]
@@ -426,8 +452,11 @@ def update_nav(enriched, portfolio_dir):
 
 if __name__ == '__main__':
     portfolio_dir = Path(sys.argv[1])
-    now = datetime.now()
-    year, week, _ = now.isocalendar()
+    if len(sys.argv) > 2:
+        week = int(sys.argv[2])
+        year = int(sys.argv[3]) if len(sys.argv) > 3 else datetime.now().year
+    else:
+        year, week, _ = datetime.now().isocalendar()
     path = SCRIPT_DIR.parent / "data" / str(year) / f"week-{week:02d}-enriched.json"
 
     enriched = load_json(path)
