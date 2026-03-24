@@ -1,8 +1,8 @@
-import subprocess, json, sys, tempfile 
+import subprocess, json, sys, tempfile, os
 from pathlib import Path
 from datetime import datetime
 
-PORTFOLIO_REPO_HTTPS = "https://github.com/TuroTheReal/Portfolio.git"
+PORTFOLIO_REPO = "https://github.com/TuroTheReal/Portfolio.git"
 URL_WEBSITE = "https://arthur-portfolio.com"
 SCRIPT_DIR = Path(__file__).parent
 
@@ -11,11 +11,18 @@ def load_enriched(year, week):
     with open(path, "r") as f:
         return json.load(f)
 
-def clone_or_local(portfolio_arg):
-    if portfolio_arg.is_dir():
+def clone_or_local(portfolio_arg=None):
+    # En local : chemin direct vers le repo Portfolio
+    if portfolio_arg and portfolio_arg.is_dir():
         return portfolio_arg
+    # En CI (GitHub Actions) : clone avec authentification via PAT
+    token = os.environ.get("GH_TOKEN")
+    if token:
+        clone_url = PORTFOLIO_REPO.replace("https://", f"https://x-access-token:{token}@")
+    else:
+        clone_url = PORTFOLIO_REPO
     tempfile_path = tempfile.mkdtemp()
-    subprocess.run(["git", "clone", PORTFOLIO_REPO_HTTPS, tempfile_path], check=True)
+    subprocess.run(["git", "clone", clone_url, tempfile_path], check=True)
     return Path(tempfile_path)
 
 def run_generate(portfolio_path):
@@ -76,7 +83,10 @@ def create_pr(portfolio_path, enriched):
     subprocess.run(["gh", "pr", "create", "--title", f"Tech Radar {enriched['year']}-week-{enriched['week']:02d}", "--body", f"Add Tech Radar for {enriched['year']}-week-{enriched['week']:02d}", "--base", "main"], check=True, cwd=portfolio_path)
 
 if __name__ == "__main__":
-    portfolio_arg = Path(sys.argv[1])
+    # Arg 1 : chemin Portfolio (optionnel, sinon clone)
+    # Arg 2 : numéro semaine (optionnel, sinon semaine courante)
+    # Arg 3 : année (optionnel, sinon année courante)
+    portfolio_arg = Path(sys.argv[1]) if len(sys.argv) > 1 else None
     if len(sys.argv) > 2:
         week = int(sys.argv[2])
         year = int(sys.argv[3]) if len(sys.argv) > 3 else datetime.now().year

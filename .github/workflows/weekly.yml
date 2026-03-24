@@ -1,0 +1,37 @@
+name: Weekly Tech Radar
+
+on:
+  schedule:
+    - cron: '0 8 * * 6'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install anthropic feedparser pyyaml beautifulsoup4
+
+      - name: Collect
+        run: python3 scripts/collect.py
+
+      - name: Summarize
+        run: python3 scripts/summarize.py
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish
+        run: python3 scripts/publish.py
+        env:
+          GH_TOKEN: ${{ secrets.PAT_PORTFOLIO }}
