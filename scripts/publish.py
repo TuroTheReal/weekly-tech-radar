@@ -36,16 +36,16 @@ def update_sitemap(portfolio_path, enriched):
 
     week = enriched['week']
     year = enriched['year']
-    filename = f"{year}-week-{week:02d}.html"
+    slug = f"{year}-week-{week:02d}"
 
     # Vérifier si l'édition existe déjà dans le sitemap
-    if filename in content:
-        print(f"Sitemap: {filename} already present, skipping")
+    if f"/tech-radar/{slug}" in content:
+        print(f"Sitemap: {slug} already present, skipping")
         return
 
     date_iso = enriched['date_end']
-    en_url = f"{URL_WEBSITE}/en/tech-radar/{filename}"
-    fr_url = f"{URL_WEBSITE}/fr/tech-radar/{filename}"
+    en_url = f"{URL_WEBSITE}/en/tech-radar/{slug}"
+    fr_url = f"{URL_WEBSITE}/fr/tech-radar/{slug}"
 
     # Deux blocs <url> : EN + FR, même pattern que le reste du sitemap
     new_entries = f"""
@@ -70,7 +70,7 @@ def update_sitemap(portfolio_path, enriched):
     content = content.replace("</urlset>", new_entries + "</urlset>")
     with open(sitemap_path, "w") as f:
         f.write(content)
-    print(f"Sitemap: added {filename}")
+    print(f"Sitemap: added {slug}")
 
 def git_publish(portfolio_path, enriched):
     subprocess.run(["git", "checkout", "-B", f"radar/{enriched['year']}-week-{enriched['week']:02d}"], check=True, cwd=portfolio_path)
@@ -80,6 +80,12 @@ def git_publish(portfolio_path, enriched):
 
 
 def create_pr(portfolio_path, enriched):
+    branch = f"radar/{enriched['year']}-week-{enriched['week']:02d}"
+    # Vérifier si une PR existe déjà pour cette branche
+    result = subprocess.run(["gh", "pr", "list", "--head", branch, "--json", "number"], capture_output=True, text=True, cwd=portfolio_path)
+    if result.stdout.strip() != "[]":
+        print(f"PR already exists for {branch}, branch updated via push")
+        return
     subprocess.run(["gh", "pr", "create", "--title", f"Tech Radar {enriched['year']}-week-{enriched['week']:02d}", "--body", f"Add Tech Radar for {enriched['year']}-week-{enriched['week']:02d}", "--base", "main"], check=True, cwd=portfolio_path)
 
 if __name__ == "__main__":
