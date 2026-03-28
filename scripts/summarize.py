@@ -100,7 +100,10 @@ def extract_json(text):
         lines = text.split("\n")
         text = "\n".join(lines[1:-1])
     # Trouver le JSON : premier [ ou { jusqu'au dernier ] ou }
-    start = min((text.find(c) for c in '[{' if text.find(c) != -1), default=0)
+    candidates = [text.find(c) for c in '[{' if text.find(c) != -1]
+    if not candidates:
+        raise ValueError(f"Pas de JSON trouvé dans la réponse : {text[:200]}")
+    start = min(candidates)
     if text[start] == '[':
         end = text.rfind(']') + 1
     else:
@@ -187,12 +190,17 @@ Résumé brut : {article.get('summary_raw', '')}
 
     prompt = SUMMARIZE_PROMPT.format(articles=articles_text)
 
-    response = client.messages.create(model="claude-haiku-4-5-20251001",
-                                      max_tokens=8192,
-                                      messages=[{"role": "user", "content": prompt}])
-
-    result = response.content[0].text
-    return extract_json(result)
+    for attempt in range(3):
+        response = client.messages.create(model="claude-haiku-4-5-20251001",
+                                          max_tokens=16384,
+                                          messages=[{"role": "user", "content": prompt}])
+        result = response.content[0].text
+        try:
+            return extract_json(result)
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Tentative {attempt + 1}/3 échouée : {e}")
+            if attempt == 2:
+                raise
 
 def save_json(enriched, week, year, date_start, date_end):
     """Sauvegarde les articles enrichis dans data/YYYY/week-XX-enriched.json.
