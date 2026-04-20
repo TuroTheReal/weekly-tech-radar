@@ -243,3 +243,12 @@ Each run generates:
 
 **Last Updated**: 2026-03-28
 **License**: MIT
+
+## 📝 Related Resources
+
+The weekly editions published by this pipeline are available on my portfolio:
+
+- 🛰️ [Tech Radar (EN)](https://arthur-portfolio.com/en/tech-radar) — Weekly curated tech watch
+
+---
+
