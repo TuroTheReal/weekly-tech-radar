@@ -23,6 +23,7 @@
 - [🚀 Quick Start](#-quick-start)
 - [⚙️ Configuration](#️-configuration)
 - [📖 Usage](#-usage)
+- [📝 Related Resources](#-related-resources)
 
 ---
 
@@ -119,8 +120,9 @@ weekly-tech-radar/
 │       └── weekly.yml         # GitHub Actions workflow
 ├── .env.example               # Environment variables template
 ├── .gitignore
+├── README.md
 ├── requirements.txt
-└── README.md
+└── roadmap.md                 # Planned features and improvements
 ```
 
 ---
@@ -241,14 +243,13 @@ Each run generates:
 
 ---
 
-**Last Updated**: 2026-03-28
-**License**: MIT
-
 ## 📝 Related Resources
 
 The weekly editions published by this pipeline are available on my portfolio:
 
-- 🛰️ [Tech Radar (EN)](https://arthur-portfolio.com/en/tech-radar) — Weekly curated tech watch
+- 🛰️ [Tech Radar](https://arthur-portfolio.com/en/tech-radar) — Weekly curated tech watch
 
 ---
 
+**Last Updated**: 2026-03-28
+**License**: MIT
