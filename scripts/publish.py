@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 
 PORTFOLIO_REPO = "https://github.com/TuroTheReal/Portfolio.git"
-URL_WEBSITE = "https://arthur-portfolio.com"
+URL_WEBSITE = "https://arthurbernard.dev"
 SCRIPT_DIR = Path(__file__).parent
 
 def load_enriched(year, week):

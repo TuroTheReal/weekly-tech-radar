@@ -29,7 +29,7 @@
 
 ## 📌 About
 
-Automated pipeline that generates a weekly tech radar edition for my [portfolio](https://arthur-portfolio.com). Every Saturday, it collects articles from 27 RSS/Atom feeds, uses Claude Haiku to select and summarize the most relevant ones (FR + EN), generates bilingual HTML pages, and opens a PR on the portfolio repo.
+Automated pipeline that generates a weekly tech radar edition for my [portfolio](https://arthurbernard.dev). Every Saturday, it collects articles from 27 RSS/Atom feeds, uses Claude Haiku to select and summarize the most relevant ones (FR + EN), generates bilingual HTML pages, and opens a PR on the portfolio repo.
 
 ### Tech Stack
 
