@@ -247,7 +247,7 @@ Each run generates:
 
 The weekly editions published by this pipeline are available on my portfolio:
 
-- 🛰️ [Tech Radar](https://arthur-portfolio.com/en/tech-radar) — Weekly curated tech watch
+- 🛰️ [Tech Radar](https://arthurbernard.dev/en/tech-radar) — Weekly curated tech watch
 
 ---
 
