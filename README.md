@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <i>Automated weekly tech watch pipeline — collects, summarizes and publishes curated tech news to my portfolio</i>
+  <i>Automated weekly tech watch pipeline: collects, summarizes and publishes curated tech news to my portfolio</i>
 </p>
 
 ---
