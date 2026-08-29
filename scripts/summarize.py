@@ -50,15 +50,44 @@ Articles:
 
 SUMMARIZE_PROMPT = """You are a tech watch assistant for a DevOps/Cloud Engineer.
 
-For EACH article below, write a factual 1-2 line summary in both French and English.
-Use the provided raw summary to extract key facts. Summarize ALL articles without exception.
-Also provide a French translation of the title.
+For EACH article below, produce, in BOTH French and English, a rewritten TITLE (headline) and a factual SUMMARY, plus exactly one category. Process ALL articles, no exception.
+French and English must be EQUIVALENT: same facts, same angle, same length. The site ships both languages side by side.
 
-Summary rules:
-- Factual only: no opinions, no editorial, no "it's worth noting"
-- Include the main fact and its concrete impact when applicable
-- BAD: "Report on the state of open source on Hugging Face"
-- GOOD: "Hugging Face downloads grew 60% in 6 months, driven by diffusion models"
+TITLE rules (title = English headline, title_fr = French headline):
+- Rewrite a real headline from the facts. Do NOT translate or mechanically shorten the source title.
+- A headline, not a sentence: short (max ~8 words / ~65 characters), no subordinate clause, no explanatory colon, no trailing qualifier, no final period.
+- A verb is allowed, but keep it tight: subject, verb, object.
+- Lead with the actor or the thing: company, product, version, CVE.
+- Keep product and proper names in English in BOTH languages (Kubernetes, EC2, Terraform, Next.js, Pod Certificates).
+- No marketing tone, no clickbait, no em dash.
+
+SUMMARY rules (summary_fr / summary_en):
+- One sentence, one concrete fact. Lead with what changed: version, figure, name, CVE, price.
+- Extract facts from the raw summary. If it gives no concrete fact, state only what happened. NEVER invent an impact or a benefit.
+- Native, plain language in both. Not translationese, not corporate.
+- No em dash anywhere: use comma, colon or period.
+- BANNED constructions (they make it read as AI-written):
+  - gerund/impact tails: "..., reducing/enabling/allowing/streamlining X" / "..., réduisant/permettant/facilitant X"
+  - empty intensifiers: "at scale", "significantly", "seamless", "robust", "powerful", "innovative", "next-gen" / "à grande échelle", "de manière significative", "révolutionnaire", "robuste", "puissant"
+  - vague impact: "improves efficiency", "reduces overhead", "streamlines workflows" / "améliore l'efficacité", "réduit la surcharge"
+  - meta: "this article", "aims to", "worth noting" / "cet article", "vise à", "il est à noter"
+
+Examples (apply this exact style):
+- Source title: "Automating root cause analysis at scale: Multi-signal correlation for cloud native incident response"
+  title: "Atlassian correlates signals to find root cause"
+  title_fr: "Atlassian corrèle ses signaux pour trouver la cause racine"
+  summary_en: "Atlassian details a multi-signal correlation method to find the root cause of incidents across its microservices."
+  summary_fr: "Atlassian détaille sa méthode de corrélation multi-signaux pour trouver la cause racine des incidents sur ses microservices."
+- Source title: "Kubernetes v1.37: Pod Certificates and Cluster Trust Bundles"
+  title: "Kubernetes v1.37 moves Pod Certificates to GA"
+  title_fr: "Kubernetes v1.37 fait passer les Pod Certificates en GA"
+  summary_en: "Kubernetes 1.37 moves Pod Certificates and Cluster Trust Bundles to GA: X.509 workload identity with auto-rotation, a replacement for service account JWTs."
+  summary_fr: "Kubernetes 1.37 fait passer Pod Certificates et Cluster Trust Bundles en GA : identité de workload en X.509 à rotation auto, en remplacement des JWT de service account."
+- Source title: "Scale before the spike: Predictive autoscaling for GPU workloads on Kubernetes"
+  title: "A predictive autoscaler provisions GPUs before the peak"
+  title_fr: "Un autoscaler prédictif provisionne les GPU avant le pic"
+  summary_en: "A predictive autoscaler provisions Kubernetes GPU nodes ahead of the traffic peak instead of reacting after it."
+  summary_fr: "Un autoscaler prédictif provisionne les nodes GPU Kubernetes avant le pic de trafic, au lieu de réagir après coup."
 
 Categories (assign exactly one): Cloud, DevOps, Security, AI/ML, Business, Tech
 - Cloud: cloud services (AWS, Azure, GCP), infrastructure, pricing, data centers
@@ -71,12 +100,12 @@ Categories (assign exactly one): Cloud, DevOps, Security, AI/ML, Business, Tech
 Respond with ONLY valid JSON:
 [
   {{
-    "title": "original title",
-    "title_fr": "titre traduit en français",
+    "title": "English headline",
+    "title_fr": "titre français",
     "url": "original url",
     "source": "source name",
     "summary_fr": "résumé factuel en français",
-    "summary_en": "factual summary in English",
+    "summary_en": "factual English summary",
     "category": "category"
   }}
 ]
