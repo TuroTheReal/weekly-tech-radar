@@ -58,7 +58,10 @@ TITLE rules (title = English headline, title_fr = French headline):
 - A headline, not a sentence: short (max ~8 words / ~65 characters), no subordinate clause, no explanatory colon, no trailing qualifier, no final period.
 - A verb is allowed, but keep it tight: subject, verb, object.
 - Lead with the actor or the thing: company, product, version, CVE.
-- Keep product and proper names in English in BOTH languages (Kubernetes, EC2, Terraform, Next.js, Pod Certificates).
+- Keep in English ONLY genuine proper nouns, official product/feature names, and short jargon French practitioners use as-is (Kubernetes, Amazon EC2, Terraform, Next.js, Pod Certificates, SCIM, GA, logs, workloads, patch). TRANSLATE every other descriptive word into the target language, and NEVER chain untranslated English descriptive words in the French headline.
+  BAD  (fr): "Le template GitLab compliance frameworks pour SOC 2"
+  GOOD (fr): "GitLab : modeles de cadres de conformite pour SOC 2"
+  GOOD (en): "GitLab ships SOC 2 compliance framework templates"
 - No marketing tone, no clickbait, no em dash.
 
 SUMMARY rules (summary_fr / summary_en):
