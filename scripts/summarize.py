@@ -58,15 +58,15 @@ TITLE rules (title = English headline, title_fr = French headline):
 - A headline, not a sentence: short (max ~8 words / ~65 characters), no subordinate clause, no explanatory colon, no trailing qualifier, no final period.
 - A verb is allowed, but keep it tight: subject, verb, object.
 - Lead with the actor or the thing: company, product, version, CVE.
-- Keep in English ONLY genuine proper nouns, official product/feature names, and short jargon French practitioners use as-is (Kubernetes, Amazon EC2, Terraform, Next.js, Pod Certificates, SCIM, GA, logs, workloads, patch). TRANSLATE every other descriptive word into the target language, and NEVER chain untranslated English descriptive words in the French headline.
-  BAD  (fr): "Le template GitLab compliance frameworks pour SOC 2"
-  GOOD (fr): "GitLab : modeles de cadres de conformite pour SOC 2"
-  GOOD (en): "GitLab ships SOC 2 compliance framework templates"
+- Terminology (applies to titles AND summaries): keep a term in English when it has no genuine, commonly used French equivalent (cloud, workload, patch, log, container, pipeline, serverless, GA, endpoint, proper nouns and product/feature names). "cloud" stays "cloud", never "informatique en nuage". Translate a word ONLY when French practitioners actually use a French equivalent (compliance frameworks -> cadres de conformite, audit logs -> logs d'audit). When unsure, keep the English term rather than force an awkward translation. But never chain several untranslated English descriptive words as a noun pile in a French sentence.
+  BAD  (fr): "Le template GitLab compliance frameworks pour SOC 2" / "20 ans d'informatique en nuage"
+  GOOD (fr): "GitLab : modeles de cadres de conformite pour SOC 2" / "20 ans de cloud"
 - No marketing tone, no clickbait, no em dash.
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence, one concrete fact. Lead with what changed: version, figure, name, CVE, price.
 - Extract facts from the raw summary. If it gives no concrete fact, state only what happened. NEVER invent an impact or a benefit.
+- Mirror the source's level of certainty. If the source frames it as a report, rumor, or "reportedly", keep that hedging (en: "reportedly", "a report says"; fr: conditionnel like "racheterait" or "selon un rapport"). Never turn an unconfirmed report into a stated fact, and never add doubt the source does not express.
 - Native, plain language in both. Not translationese, not corporate.
 - No em dash anywhere: use comma, colon or period.
 - BANNED constructions (they make it read as AI-written):
