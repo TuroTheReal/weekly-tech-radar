@@ -14,7 +14,7 @@ Selection criteria:
 - Maximize thematic diversity across all domains
 - Ignore noise: quizzes, basic tutorials, event announcements, sponsored content, opinion pieces, listicles
 
-Respond with ONLY valid JSON — a list of 40 selected indices:
+Respond with ONLY valid JSON, a list of 40 selected indices:
 [0, 5, 12, ...]
 
 Articles:
@@ -42,7 +42,7 @@ Examples:
   7. [The Register] OpenAI signs $2B Pentagon AI contract
   → Two different events about OpenAI. Keep both.
 
-Respond with ONLY valid JSON — the list of indices to KEEP (one per topic):
+Respond with ONLY valid JSON, the list of indices to KEEP (one per topic):
 [0, 2, 3, 5, ...]
 
 Articles:
