@@ -2,7 +2,7 @@ name: Weekly Tech Radar
 
 on:
   schedule:
-    - cron: '0 8 * * 6'
+    - cron: '0 5 * * 6'
   workflow_dispatch:
 
 jobs:
