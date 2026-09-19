@@ -81,9 +81,9 @@ TITLE rules (title = English headline, title_fr = French headline):
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence, one concrete fact. Lead with what changed: version, figure, name, CVE, price.
-- HARD LIMIT, count characters: summary_en 200 max, summary_fr 230 max. If you need a semicolon or a
-  third comma-separated item to fit everything, you are listing instead of summarizing: keep the single
-  most consequential fact and drop the rest.
+- Length: summary_en 240 characters max, summary_fr 290 max. Density is fine, listing is not: if you need
+  a semicolon or a third comma-separated item to fit everything in, you are listing instead of summarizing.
+  Keep the single most consequential fact and drop the rest.
   BAD  (fr): "GitLab 19.4 ajoute les budgets de crédits par utilisateur, la visibilité des dépenses et les
              exportations d'utilisation détaillées; les administrateurs définissent les plafonds fixes avec
              les dérogations par utilisateur pour contrôler les dépenses IA."
@@ -148,9 +148,11 @@ STOP_WORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "for", "on",
               "with", "is", "are", "its", "by", "from", "how", "what", "why",
               "new", "now", "can", "that", "this", "it", "as", "at", "be"}
 
-# Budgets de longueur, par langue. Le francais fait ~15% de plus que l'anglais
-# a contenu egal : un budget unique pousserait le modele a tronquer le FR.
-LENGTH_LIMITS = {"title": 65, "title_fr": 75, "summary_en": 200, "summary_fr": 230}
+# Budgets de longueur, par langue. Mesure sur les editions publiees : le francais
+# fait ~19% de plus que l'anglais a contenu egal, un budget unique pousserait le
+# modele a tronquer le FR. Les budgets de resume sont cales sur le p90 du publie :
+# un garde-fou qui crie sur un tiers des resumes ne serait plus lu.
+LENGTH_LIMITS = {"title": 65, "title_fr": 75, "summary_en": 240, "summary_fr": 290}
 
 # Nb max d'articles portant sur le meme acteur (1er mot significatif du titre).
 VENDOR_LIMIT = 3
