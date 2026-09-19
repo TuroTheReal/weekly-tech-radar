@@ -18,6 +18,13 @@ TECH_RADAR_DIR = "tech-radar"
 TEMPLATE_NAME = "edition-template.html"
 INDEX_NAME = "index.html"
 CTA = {"en": "Read article →", "fr": "Lire l'article →"}
+
+# Budgets SEO. Google tronque le <title> vers 600px (~60 caracteres selon les
+# glyphes) et la meta description vers ~155. Le template ajoute " | Arthur Bernard"
+# au SEO_TITLE, donc le suffixe est compte dans le budget.
+TITLE_BUDGET = 60
+TITLE_SUFFIX = " | Arthur Bernard"
+META_DESC_BUDGET = 155
 ALL_LABEL = {"en": "All", "fr": "Tous"}
 CATEGORY_MAP = {
     "Business": {"css": "business",   "en": "Business", "fr": "Business"},
@@ -186,6 +193,57 @@ def render_card(enriched, grouped, lang):
 '''
     return filled
 
+def build_seo_title(week, month_name, year, cat_labels, lang):
+    """Construit le SEO title en tenant dans TITLE_BUDGET.
+
+    Retire des catégories une à une jusqu'à ce que le titre rendu tienne, suffixe
+    du template compris. Sans catégorie du tout en dernier recours.
+
+    Args:
+        week (int): Numéro de semaine ISO
+        month_name (str): Nom du mois dans la langue cible
+        year (int): Année
+        cat_labels (list): Libellés de catégories présentes, par ordre d'importance
+        lang (str): 'en' ou 'fr'
+
+    Returns:
+        str: SEO title, len() <= TITLE_BUDGET - len(TITLE_SUFFIX)
+    """
+    def render(labels):
+        if not labels:
+            return (f"Tech Radar Week {week} ({month_name} {year})" if lang == 'en'
+                    else f"Tech Radar Semaine {week} ({month_name} {year})")
+        cat_str = ", ".join(labels[:-1]) + " & " + labels[-1] if len(labels) > 1 else labels[0]
+        return (f"Tech Radar Week {week} — {cat_str} News ({month_name} {year})" if lang == 'en'
+                else f"Tech Radar Semaine {week} — Actu {cat_str} ({month_name} {year})")
+
+    budget = TITLE_BUDGET - len(TITLE_SUFFIX)
+    for count in range(len(cat_labels), 0, -1):
+        candidate = render(cat_labels[:count])
+        if len(candidate) <= budget:
+            return candidate
+    return render([])
+
+def build_meta_description(highlights, lang):
+    """Construit la meta description en tenant dans META_DESC_BUDGET.
+
+    Empile les titres mis en avant tant que le budget tient, plutôt que d'en
+    coller quatre et de laisser Google couper au milieu d'un mot.
+
+    Args:
+        highlights (list): Titres des articles mis en avant
+        lang (str): 'en' ou 'fr'
+
+    Returns:
+        str: Meta description, len() <= META_DESC_BUDGET
+    """
+    suffix = " and more." if lang == 'en' else " et plus."
+    for count in range(min(len(highlights), 4), 0, -1):
+        candidate = ", ".join(highlights[:count]) + suffix
+        if len(candidate) <= META_DESC_BUDGET:
+            return candidate
+    return highlights[0][:META_DESC_BUDGET] if highlights else suffix.strip()
+
 def generate_edition(enriched, grouped, portfolio_dir):
     """Crée le fichier HTML d'une édition (EN + FR).
 
@@ -246,25 +304,10 @@ def generate_edition(enriched, grouped, portfolio_dir):
         highlights = []
         for category in grouped:
             highlights.append(grouped[category][0]['title'] if lang == 'en' else grouped[category][0].get('title_fr', grouped[category][0]['title']))
-        suffix = " and more." if lang == 'en' else " et plus."
-        meta_description = ", ".join(highlights[:4]) + suffix
+        meta_description = build_meta_description(highlights, lang)
 
-        # SEO title : "Tech Radar Week 12 — Cloud, DevOps, Security & AI News (March 2026)"
         cat_labels = [CATEGORY_MAP[c][lang] for c in grouped]
-        if lang == 'en':
-            month_name = MONTHS['en'][date_end.month]
-            if len(cat_labels) > 1:
-                cat_str = ", ".join(cat_labels[:-1]) + " & " + cat_labels[-1]
-            else:
-                cat_str = cat_labels[0]
-            seo_title = f"Tech Radar Week {week} — {cat_str} News ({month_name} {year})"
-        else:
-            month_name = MONTHS['fr'][date_end.month]
-            if len(cat_labels) > 1:
-                cat_str = ", ".join(cat_labels[:-1]) + " & " + cat_labels[-1]
-            else:
-                cat_str = cat_labels[0]
-            seo_title = f"Tech Radar Semaine {week} — Actu {cat_str} ({month_name} {year})"
+        seo_title = build_seo_title(week, MONTHS[lang][date_end.month], year, cat_labels, lang)
 
         with open(template_path, 'r') as f:
             html = f.read()
