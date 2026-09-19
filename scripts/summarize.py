@@ -81,6 +81,14 @@ TITLE rules (title = English headline, title_fr = French headline):
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence, one concrete fact. Lead with what changed: version, figure, name, CVE, price.
+- HARD LIMIT, count characters: summary_en 200 max, summary_fr 230 max. If you need a semicolon or a
+  third comma-separated item to fit everything, you are listing instead of summarizing: keep the single
+  most consequential fact and drop the rest.
+  BAD  (fr): "GitLab 19.4 ajoute les budgets de crédits par utilisateur, la visibilité des dépenses et les
+             exportations d'utilisation détaillées; les administrateurs définissent les plafonds fixes avec
+             les dérogations par utilisateur pour contrôler les dépenses IA."
+  GOOD (fr): "GitLab 19.4 permet de plafonner les crédits IA par utilisateur, avec dérogations ponctuelles
+             et export détaillé de la consommation."
 - Extract facts from the raw summary. If it gives no concrete fact, state what the article establishes, in the subject's own terms. NEVER invent an impact or a benefit.
 - Mirror the source's level of certainty. If the source frames it as a report, rumor, or "reportedly", keep that hedging (en: "reportedly", "a report says"; fr: conditionnel like "racheterait" or "selon un rapport"). Never turn an unconfirmed report into a stated fact, and never add doubt the source does not express.
 - Native, plain language in both. Not translationese, not corporate.
