@@ -12,6 +12,8 @@ Selection criteria:
 - Prioritize high-impact news: new cloud/devops features, critical vulnerabilities (CVSS 8+), major acquisitions, version releases, pricing changes
 - When relevance is equal, prioritize in this order: Business > DevOps = Cloud > Tech > Security > AI/ML
 - Maximize thematic diversity across all domains
+- At most 3 articles PER SOURCE, whatever its volume. A source that published 50 articles this week
+  does not get 50 slots, and a single vendor blog must not fill a quarter of the edition on its own.
 - Ignore noise: quizzes, basic tutorials, event announcements, sponsored content, opinion pieces, listicles
 
 Respond with ONLY valid JSON, a list of 40 selected indices:
@@ -68,7 +70,10 @@ TITLE rules (title = English headline, title_fr = French headline):
 - Subject, verb, object, with a CONJUGATED verb. Never a noun pile, and never a trailing status in parentheses: put Alpha/Beta/GA in the summary.
   BAD  (fr): "Kubernetes v1.37 Preemption du planificateur pour redimensionnement de Pod sur place (Alpha)"
   GOOD (fr): "Kubernetes v1.37 preempte les Pods pour les redimensionner"
-- Lead with the actor or the thing: company, product, version, CVE.
+- Lead with the actor or the thing: company, product, version, CVE. The reader scans the first word of
+  each headline, so it has to carry information. In French, NEVER open a headline with Le, La, Les or L'.
+  BAD  (fr): "Les limites de debit de GitLab.com s'alignent sur les niveaux d'abonnement"
+  GOOD (fr): "GitLab.com aligne ses limites de debit sur les abonnements"
 - Terminology (applies to titles AND summaries): keep a term in English when it has no genuine, commonly used French equivalent (cloud, workload, patch, log, container, pipeline, serverless, GA, endpoint, proper nouns and product/feature names). "cloud" stays "cloud", never "informatique en nuage". Translate a word ONLY when French practitioners actually use a French equivalent (compliance frameworks -> cadres de conformite, audit logs -> logs d'audit). When unsure, keep the English term rather than force an awkward translation. But never chain several untranslated English descriptive words as a noun pile in a French sentence.
   BAD  (fr): "Le template GitLab compliance frameworks pour SOC 2" / "20 ans d'informatique en nuage"
   GOOD (fr): "GitLab : modeles de cadres de conformite pour SOC 2" / "20 ans de cloud"
@@ -77,7 +82,10 @@ TITLE rules (title = English headline, title_fr = French headline):
     container breakout -> evasion de conteneur  NEVER "fuite de conteneur"
     on-call page -> alerte d'astreinte          NEVER "page"
     AI -> IA                                    always, in French prose and titles alike
-- No marketing tone, no clickbait, no em dash.
+- No marketing tone, no clickbait, no em dash. Never reuse the vendor's own slogan as the headline,
+  say what the product actually does. Their campaign words are not facts.
+  BAD  (fr): "GitLab securise l'usine logicielle a la vitesse machine"
+  GOOD (fr): "GitLab detaille un modele de defense en trois couches pour le code agentique"
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence, one concrete fact. Lead with what changed: version, figure, name, CVE, price.
