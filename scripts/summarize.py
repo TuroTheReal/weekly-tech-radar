@@ -68,12 +68,13 @@ TITLE rules (title = English headline, title_fr = French headline):
 - A headline, not a sentence: no subordinate clause, no explanatory colon, no trailing qualifier, no final period.
 - HARD LIMIT, count characters: title (English) 65 max, title_fr (French) 75 max. Over the limit is a failure, rewrite it shorter.
 - Subject, verb, object, with a CONJUGATED verb. Never a noun pile, and never a trailing status in parentheses: put Alpha/Beta/GA in the summary.
-  BAD  (fr): "Kubernetes v1.37 Preemption du planificateur pour redimensionnement de Pod sur place (Alpha)"
-  GOOD (fr): "Kubernetes v1.37 preempte les Pods pour les redimensionner"
+  BAD  (fr): "Kubernetes v1.37 Preemption du planificateur pour redimensionnement de Pod sur place (Alpha)"  (92 chars)
+  GOOD (fr): "Kubernetes v1.37 preempte les Pods pour les redimensionner"  (58 chars)
+  Every GOOD example above is under budget. Aim for that range, not for the ceiling.
 - Lead with the actor or the thing: company, product, version, CVE. The reader scans the first word of
   each headline, so it has to carry information. In French, NEVER open a headline with Le, La, Les or L'.
-  BAD  (fr): "Les limites de debit de GitLab.com s'alignent sur les niveaux d'abonnement"
-  GOOD (fr): "GitLab.com aligne ses limites de debit sur les abonnements"
+  BAD  (fr): "Les limites de debit de GitLab.com s'alignent sur les niveaux d'abonnement"  (74 chars, opens on an article)
+  GOOD (fr): "GitLab.com aligne ses limites de debit sur les abonnements"  (58 chars)
 - Terminology (applies to titles AND summaries): keep a term in English when it has no genuine, commonly used French equivalent (cloud, workload, patch, log, container, pipeline, serverless, GA, endpoint, proper nouns and product/feature names). "cloud" stays "cloud", never "informatique en nuage". Translate a word ONLY when French practitioners actually use a French equivalent (compliance frameworks -> cadres de conformite, audit logs -> logs d'audit). When unsure, keep the English term rather than force an awkward translation. But never chain several untranslated English descriptive words as a noun pile in a French sentence.
   BAD  (fr): "Le template GitLab compliance frameworks pour SOC 2" / "20 ans d'informatique en nuage"
   GOOD (fr): "GitLab : modeles de cadres de conformite pour SOC 2" / "20 ans de cloud"
@@ -84,8 +85,8 @@ TITLE rules (title = English headline, title_fr = French headline):
     AI -> IA                                    always, in French prose and titles alike
 - No marketing tone, no clickbait, no em dash. Never reuse the vendor's own slogan as the headline,
   say what the product actually does. Their campaign words are not facts.
-  BAD  (fr): "GitLab securise l'usine logicielle a la vitesse machine"
-  GOOD (fr): "GitLab detaille un modele de defense en trois couches pour le code agentique"
+  BAD  (fr): "GitLab securise l'usine logicielle a la vitesse machine"  (55 chars, pure vendor slogan)
+  GOOD (fr): "GitLab decrit sa defense en trois couches pour le code agentique"  (63 chars)
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence, one concrete fact. Lead with what changed: version, figure, name, CVE, price.
