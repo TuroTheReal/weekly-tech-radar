@@ -444,6 +444,13 @@ if __name__ == "__main__":
     enriched = summarize_articles(client, deduped)
     print(f"Summarized {len(enriched)} articles")
 
+    # Le modele peut rendre un JSON valide en ayant saute des articles quand le lot
+    # approche max_tokens. Perte silencieuse, et signe avant-coureur de la troncature
+    # en plein JSON qui, elle, fait echouer le run.
+    if len(enriched) != len(deduped):
+        print(f"⚠ {len(deduped) - len(enriched)} article(s) perdu(s) au résumé "
+              f"({len(deduped)} envoyés, {len(enriched)} revenus), lot trop gros pour max_tokens")
+
     final = post_process(enriched)
 
     over_budget = check_lengths(final)
