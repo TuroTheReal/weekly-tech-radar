@@ -90,7 +90,10 @@ TITLE rules (title = English headline, title_fr = French headline):
   GOOD (fr): "GitLab decrit sa defense en trois couches pour le code agentique"  (63 chars)
 
 SUMMARY rules (summary_fr / summary_en):
-- One sentence, one concrete fact. Lead with what changed: version, figure, name, CVE, price.
+- One sentence carrying what the TITLE LEFT OUT: the figure, the scope, the condition, the limit.
+  Never restate the title. A reader who just read it must learn something here.
+  BAD  (fr): "Anthropic s'est engagee a investir 11,6 milliards sur sept ans aupres d'Akamai."  (le titre le disait deja)
+  GOOD (fr): "L'engagement couvre l'infrastructure cloud CPU et ouvre une participation possible de 5 % au capital."
 - Length: summary_en 240 characters max, summary_fr 290 max. Density is fine, listing is not: if you need
   a semicolon or a third comma-separated item to fit everything in, you are listing instead of summarizing.
   Keep the single most consequential fact and drop the rest.
