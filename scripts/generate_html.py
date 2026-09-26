@@ -23,7 +23,6 @@ CTA = {"en": "Read article →", "fr": "Lire l'article →"}
 # glyphes) et la meta description vers ~155. Le template ajoute " | Arthur Bernard"
 # au SEO_TITLE, donc le suffixe est compte dans le budget.
 TITLE_BUDGET = 60
-TITLE_SUFFIX = " | Arthur Bernard"
 META_DESC_BUDGET = 155
 ALL_LABEL = {"en": "All", "fr": "Tous"}
 CATEGORY_MAP = {
@@ -207,42 +206,47 @@ def build_seo_title(week, month_name, year, cat_labels, lang):
         lang (str): 'en' ou 'fr'
 
     Returns:
-        str: SEO title, len() <= TITLE_BUDGET - len(TITLE_SUFFIX)
+        str: SEO title complet tel qu'il sera rendu, len() <= TITLE_BUDGET
     """
     def render(labels):
         if not labels:
             return (f"Tech Radar Week {week} ({month_name} {year})" if lang == 'en'
                     else f"Tech Radar Semaine {week} ({month_name} {year})")
         cat_str = ", ".join(labels[:-1]) + " & " + labels[-1] if len(labels) > 1 else labels[0]
-        return (f"Tech Radar Week {week} — {cat_str} News ({month_name} {year})" if lang == 'en'
-                else f"Tech Radar Semaine {week} — Actu {cat_str} ({month_name} {year})")
+        # ni "Actu" ni "News" : cinq signes qui ne captent aucune requête, alors qu'ils
+        # coûtent une catégorie entière au budget (une seule tenait en FR avec eux)
+        return (f"Tech Radar Week {week} — {cat_str} ({month_name} {year})" if lang == 'en'
+                else f"Tech Radar Semaine {week} — {cat_str} ({month_name} {year})")
 
-    budget = TITLE_BUDGET - len(TITLE_SUFFIX)
     for count in range(len(cat_labels), 0, -1):
         candidate = render(cat_labels[:count])
-        if len(candidate) <= budget:
+        if len(candidate) <= TITLE_BUDGET:
             return candidate
     return render([])
 
-def build_meta_description(highlights, lang):
+def build_meta_description(week, highlights, lang):
     """Construit la meta description en tenant dans META_DESC_BUDGET.
 
     Empile les titres mis en avant tant que le budget tient, plutôt que d'en
-    coller quatre et de laisser Google couper au milieu d'un mot.
+    coller quatre et de laisser Google couper au milieu d'un mot. Le préfixe fait
+    partie de la valeur mesurée : tant qu'il vivait dans le gabarit, il s'ajoutait
+    après coup au budget et les descriptions sortaient à 175 signes.
 
     Args:
+        week (int): Numéro de semaine ISO
         highlights (list): Titres des articles mis en avant
         lang (str): 'en' ou 'fr'
 
     Returns:
-        str: Meta description, len() <= META_DESC_BUDGET
+        str: Meta description complète telle qu'elle sera rendue, len() <= META_DESC_BUDGET
     """
+    prefix = f"Tech Radar Week {week}, " if lang == 'en' else f"Tech Radar Semaine {week}, "
     suffix = " and more." if lang == 'en' else " et plus."
     for count in range(min(len(highlights), 4), 0, -1):
-        candidate = ", ".join(highlights[:count]) + suffix
+        candidate = prefix + ", ".join(highlights[:count]) + suffix
         if len(candidate) <= META_DESC_BUDGET:
             return candidate
-    return highlights[0][:META_DESC_BUDGET] if highlights else suffix.strip()
+    return (prefix + highlights[0])[:META_DESC_BUDGET] if highlights else prefix.rstrip(", ")
 
 def generate_edition(enriched, grouped, portfolio_dir):
     """Crée le fichier HTML d'une édition (EN + FR).
@@ -304,7 +308,7 @@ def generate_edition(enriched, grouped, portfolio_dir):
         highlights = []
         for category in grouped:
             highlights.append(grouped[category][0]['title'] if lang == 'en' else grouped[category][0].get('title_fr', grouped[category][0]['title']))
-        meta_description = build_meta_description(highlights, lang)
+        meta_description = build_meta_description(week, highlights, lang)
 
         cat_labels = [CATEGORY_MAP[c][lang] for c in grouped]
         seo_title = build_seo_title(week, MONTHS[lang][date_end.month], year, cat_labels, lang)

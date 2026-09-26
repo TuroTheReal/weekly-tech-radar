@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 SCRIPT_DIR = Path(__file__).parent
+MODEL = "claude-haiku-4-5-20251001"
 SELECT_PROMPT = """You are a tech watch assistant for a DevOps/Cloud Engineer profile.
 
 You receive a list of tech articles from the past week (index, source, title).
@@ -210,22 +211,63 @@ def title_actor(title):
     version = next((w for w in words if re.match(r"^v?\d+\.\d", w)), "")
     return f"{actor} {version}".strip()
 
+def ask_model(client, prompt, max_tokens):
+    """Envoie un prompt au modèle et rend le texte de sa réponse.
+
+    Args:
+        client (anthropic.Anthropic): Client API Anthropic
+        prompt (str): Prompt complet
+        max_tokens (int): Plafond de tokens pour la réponse
+
+    Returns:
+        str: Texte de la réponse
+
+    Raises:
+        ValueError: La réponse a été coupée par le plafond de tokens
+    """
+    response = client.messages.create(model=MODEL,
+                                      max_tokens=max_tokens,
+                                      messages=[{"role": "user", "content": prompt}])
+    # Seul signal fiable de troncature : un JSON coupé reste parfois parsable en apparence
+    # (le parseur peut retomber sur un fragment intact à l'intérieur), et on publierait
+    # alors une édition amputée sans rien signaler.
+    if response.stop_reason == "max_tokens":
+        raise ValueError(f"Réponse coupée au plafond de {max_tokens} tokens")
+    return response.content[0].text
+
 def extract_json(text):
-    """Extrait le JSON d'une réponse Claude (gère blocs ```json et texte parasite)."""
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.split("\n")
-        text = "\n".join(lines[1:-1])
-    # Trouver le JSON : premier [ ou { jusqu'au dernier ] ou }
-    candidates = [text.find(c) for c in '[{' if text.find(c) != -1]
-    if not candidates:
-        raise ValueError(f"Pas de JSON trouvé dans la réponse : {text[:200]}")
-    start = min(candidates)
-    if text[start] == '[':
-        end = text.rfind(']') + 1
-    else:
-        end = text.rfind('}') + 1
-    return json.loads(text[start:end])
+    """Extrait la première valeur JSON d'une réponse Claude, en ignorant la prose autour.
+
+    Le modèle encadre parfois le JSON d'un bloc ``` ou d'un commentaire, et ce commentaire
+    recopie les sources entre crochets : borner la fin sur le dernier ] coupait alors au
+    mauvais endroit (run du 2026-09-26). raw_decode s'arrête de lui-même à la fin de la
+    première valeur complète, donc la prose qui suit ne compte plus.
+
+    Args:
+        text (str): Réponse brute du modèle
+
+    Returns:
+        list | dict: La première valeur JSON complète trouvée
+
+    Raises:
+        ValueError: Aucune valeur JSON complète dans la réponse
+    """
+    decoder = json.JSONDecoder()
+    pos = 0
+    while (candidat := re.search(r'[\[{]', text[pos:])):
+        start = pos + candidat.start()
+        try:
+            return decoder.raw_decode(text[start:])[0]
+        except json.JSONDecodeError as err:
+            # Une chaîne jamais refermée signe une réponse coupée : tout ce qui suit son
+            # guillemet ouvrant est du contenu de chaîne, pas une frontière à réessayer.
+            # Y reprendre le scan retomberait sur un fragment intact (un "[1, 2, 3]" cité
+            # dans un résumé) et renverrait une édition amputée sans rien signaler.
+            if err.msg.startswith("Unterminated string"):
+                break
+            # Sinon, repartir APRES ce que la tentative a consommé, jamais à l'intérieur.
+            pos = start + max(err.pos, 1)
+    raise ValueError(f"Pas de JSON complet dans la réponse : {text[:200]}")
 
 def load_json(path):
     """Charge un fichier JSON.
@@ -255,12 +297,7 @@ def select_articles(client, articles):
 
     prompt = SELECT_PROMPT.format(articles=articles_text)
 
-    response = client.messages.create(model="claude-haiku-4-5-20251001",
-                                       max_tokens=4096,
-                                       messages=[{"role": "user", "content": prompt}])
-
-    result = response.content[0].text
-    return extract_json(result)
+    return extract_json(ask_model(client, prompt, max_tokens=4096))
 
 def dedup_articles(client, selected):
     """Envoie les articles sélectionnés à Claude API pour déduplication par sujet.
@@ -278,12 +315,7 @@ def dedup_articles(client, selected):
 
     prompt = DEDUP_PROMPT.format(articles=articles_text)
 
-    response = client.messages.create(model="claude-haiku-4-5-20251001",
-                                       max_tokens=4096,
-                                       messages=[{"role": "user", "content": prompt}])
-
-    result = response.content[0].text
-    return extract_json(result)
+    return extract_json(ask_model(client, prompt, max_tokens=4096))
 
 def summarize_articles(client, selected):
     """Envoie les articles dédupliqués à Claude API pour résumé bilingue et catégorisation.
@@ -308,12 +340,8 @@ Résumé brut : {article.get('summary_raw', '')}
     prompt = SUMMARIZE_PROMPT.format(articles=articles_text)
 
     for attempt in range(3):
-        response = client.messages.create(model="claude-haiku-4-5-20251001",
-                                          max_tokens=16384,
-                                          messages=[{"role": "user", "content": prompt}])
-        result = response.content[0].text
         try:
-            return extract_json(result)
+            return extract_json(ask_model(client, prompt, max_tokens=16384))
         except (json.JSONDecodeError, ValueError) as e:
             print(f"Tentative {attempt + 1}/3 échouée : {e}")
             if attempt == 2:
