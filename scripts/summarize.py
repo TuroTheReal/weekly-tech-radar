@@ -1,4 +1,4 @@
-import json, re, string, anthropic
+import json, re, string, sys, anthropic
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -456,7 +456,13 @@ def check_lengths(articles):
 
 if __name__ == "__main__":
     now = datetime.now()
-    year, week, _ = now.isocalendar()
+    # semaine en argument comme generate_html.py : sert a rejouer un lot deja collecte,
+    # seule facon de comparer deux versions du prompt a jeu d articles constant
+    if len(sys.argv) > 1:
+        week = int(sys.argv[1])
+        year = int(sys.argv[2]) if len(sys.argv) > 2 else now.year
+    else:
+        year, week, _ = now.isocalendar()
     path = SCRIPT_DIR.parent / "data" / str(year) / f"week-{week:02d}.json"
 
     articles = load_json(path)
