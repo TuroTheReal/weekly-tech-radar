@@ -97,19 +97,34 @@ def test_check_lengths():
     assert len(sz.check_lengths([trop_long])) == 1
 
 def test_seo_title_tient_dans_le_budget():
-    budget = gh.TITLE_BUDGET - len(gh.TITLE_SUFFIX)
+    # le gabarit n'ajoute plus rien autour : ce que rend la fonction est ce que voit Google
     for lang, month in [("fr", "Septembre"), ("en", "September")]:
         for n in range(0, 7):
             t = gh.build_seo_title(37, month, 2026, ["Business", "Cloud", "DevOps", "Sécurité", "IA", "Tech"][:n], lang)
-            assert len(t) <= budget, f"{lang} {n} cats : {len(t)} > {budget} | {t}"
+            assert len(t) <= gh.TITLE_BUDGET, f"{lang} {n} cats : {len(t)} > {gh.TITLE_BUDGET} | {t}"
             assert "37" in t
+
+def test_seo_title_garde_des_categories():
+    # sans le suffixe de marque, le budget doit loger au moins une catégorie : sinon les
+    # 60 éditions ont le même titre à un numéro près, sans le moindre mot-clé.
+    for lang, month in [("fr", "Septembre"), ("en", "September")]:
+        t = gh.build_seo_title(37, month, 2026, ["Cloud", "DevOps", "Sécurité"], lang)
+        assert "Cloud" in t, f"{lang} : aucune catégorie dans « {t} »"
 
 def test_meta_description_tient_dans_le_budget():
     longs = ["Kubernetes v1.37 fait passer les histogrammes natifs en Beta"] * 4
     for lang in ("fr", "en"):
-        d = gh.build_meta_description(longs, lang)
+        d = gh.build_meta_description(37, longs, lang)
         assert len(d) <= gh.META_DESC_BUDGET, f"{lang} : {len(d)} > {gh.META_DESC_BUDGET}"
-    assert gh.build_meta_description([], "fr")  # pas de crash sans article
+    assert gh.build_meta_description(37, [], "fr")  # pas de crash sans article
+
+def test_meta_description_porte_son_prefixe():
+    # Le préfixe vivait dans le gabarit, donc hors budget : les descriptions sortaient à
+    # 175 signes pour un plafond annoncé de 155. La valeur rendue doit être complète.
+    for lang, attendu in [("fr", "Tech Radar Semaine 37, "), ("en", "Tech Radar Week 37, ")]:
+        d = gh.build_meta_description(37, ["Un titre d'article assez long pour compter"] * 4, lang)
+        assert d.startswith(attendu), f"{lang} : préfixe absent de « {d[:40]} »"
+        assert len(d) <= gh.META_DESC_BUDGET
 
 class _FauxClient:
     """Client Anthropic bouchonné : rend un texte fixe et un stop_reason choisi."""
