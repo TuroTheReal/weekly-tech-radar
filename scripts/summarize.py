@@ -137,22 +137,42 @@ SUMMARY rules (summary_fr / summary_en):
     BAD : "CNCF guidance on integrating external identity providers with on-prem clusters using public client OAuth flows."
     GOOD: "On-prem clusters can delegate auth to an external IdP via public client OAuth flows, with no shared secret."
 
-Examples (apply this exact style):
-- Source title: "Automating root cause analysis at scale: Multi-signal correlation for cloud native incident response"
+<examples>
+In every example below, the headline names the actor and what it did, then stops. The summary
+opens on what the headline left out, and never repeats it.
+
+<example>
+  Source title: "Automating root cause analysis at scale: Multi-signal correlation for cloud native incident response"
   title: "Atlassian correlates signals to find root cause"
   title_fr: "Atlassian corrèle ses signaux pour trouver la cause racine"
-  summary_en: "Atlassian details a multi-signal correlation method to find the root cause of incidents across its microservices."
-  summary_fr: "Atlassian détaille sa méthode de corrélation multi-signaux pour trouver la cause racine des incidents sur ses microservices."
-- Source title: "Kubernetes v1.37: Pod Certificates and Cluster Trust Bundles"
+  summary_en: "The method cross-checks metrics, logs and traces across microservices instead of paging on a single alert."
+  summary_fr: "La méthode recoupe métriques, logs et traces sur les microservices, au lieu de déclencher sur une seule alerte."
+</example>
+
+<example>
+  Source title: "Kubernetes v1.37: Pod Certificates and Cluster Trust Bundles"
   title: "Kubernetes v1.37 moves Pod Certificates to GA"
   title_fr: "Kubernetes v1.37 fait passer les Pod Certificates en GA"
-  summary_en: "Kubernetes 1.37 moves Pod Certificates and Cluster Trust Bundles to GA: X.509 workload identity with auto-rotation, a replacement for service account JWTs."
-  summary_fr: "Kubernetes 1.37 fait passer Pod Certificates et Cluster Trust Bundles en GA : identité de workload en X.509 à rotation auto, en remplacement des JWT de service account."
-- Source title: "Scale before the spike: Predictive autoscaling for GPU workloads on Kubernetes"
+  summary_en: "X.509 workload identity with auto-rotation replaces service account JWTs, alongside Cluster Trust Bundles."
+  summary_fr: "L'identité de workload en X.509 à rotation automatique remplace les JWT de service account, avec les Cluster Trust Bundles."
+</example>
+
+<example>
+  Source title: "Scale before the spike: Predictive autoscaling for GPU workloads on Kubernetes"
   title: "A predictive autoscaler provisions GPUs before the peak"
   title_fr: "Un autoscaler prédictif provisionne les GPU avant le pic"
-  summary_en: "A predictive autoscaler provisions Kubernetes GPU nodes ahead of the traffic peak instead of reacting after it."
-  summary_fr: "Un autoscaler prédictif provisionne les nodes GPU Kubernetes avant le pic de trafic, au lieu de réagir après coup."
+  summary_en: "Provisioning follows the traffic curve ahead of time rather than after it, on Kubernetes GPU nodes."
+  summary_fr: "Le provisionnement anticipe la courbe de trafic au lieu de la suivre, sur les nodes GPU Kubernetes."
+</example>
+
+<example>
+  Source title: "Broadcom completes $61 billion VMware acquisition"
+  title: "Broadcom completes its VMware acquisition"
+  title_fr: "Broadcom finalise le rachat de VMware"
+  summary_en: "The deal is worth $61 billion and closes a review that ran across several jurisdictions."
+  summary_fr: "L'opération porte sur 61 milliards de dollars et clôt un examen mené dans plusieurs juridictions."
+</example>
+</examples>
 
 Categories (assign exactly one): Cloud, DevOps, Security, AI/ML, Business, Tech
 - Cloud: cloud services (AWS, Azure, GCP), infrastructure, pricing, data centers
