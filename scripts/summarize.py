@@ -66,6 +66,20 @@ For EACH article below, produce, in BOTH French and English, a rewritten TITLE (
 French and English must be EQUIVALENT: same facts, same angle. The site ships both languages side by side.
 French runs about 15% longer than English for identical content. That is expected: respect the per-language limit below, never pad or truncate one language to match the other's character count.
 
+HOW TITLE AND SUMMARY SHARE THE WORK (read this before the rules below):
+The title carries WHO did WHAT, nothing else. Every remaining detail (duration, amount ceiling,
+version, scope, condition) belongs to the summary. Pushing detail out of the title is what keeps it
+under budget, and what gives the summary something to say. The summary NEVER reopens on the title's
+subject: it starts on the detail.
+  BAD  titre  : "Anthropic s'engage a investir 11,6 milliards chez Akamai sur sept ans"
+       resume : "Anthropic s'est engagee a investir 11,6 milliards chez Akamai sur sept ans, avec un
+                 potentiel jusqu'a 20 milliards et une possible participation de 5 % au capital."
+       -> le titre porte un detail de trop, et le resume repete le titre avant d en venir au fait
+  GOOD titre  : "Anthropic investit 11,6 milliards chez Akamai"
+       resume : "L'engagement court sur sept ans, peut monter a 20 milliards et ouvre une
+                 participation de 5 % au capital."
+       -> "sur sept ans" a quitte le titre, qui raccourcit ; le resume ouvre sur ce qu il apporte
+
 TITLE rules (title = English headline, title_fr = French headline):
 - Rewrite a real headline from the facts. Do NOT translate or mechanically shorten the source title.
 - A headline, not a sentence: no subordinate clause, no explanatory colon, no trailing qualifier, no final period.
@@ -93,20 +107,14 @@ TITLE rules (title = English headline, title_fr = French headline):
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence carrying what the TITLE LEFT OUT: the figure, the scope, the condition, the limit.
-  NEVER open on the title's subject, start straight on the new element. Naming the subject again
-  eats the sentence, and the one fact worth reading lands too late or not at all.
-  BAD  (fr): "Anthropic s'est engagee a investir 11,6 milliards chez Akamai sur sept ans, avec un
-             potentiel jusqu'a 20 milliards et une possible participation de 5 % au capital."
-  GOOD (fr): "Le montant peut monter a 20 milliards et s'accompagne d'une possible participation de
-             5 % au capital."
 - Length: summary_en 240 characters max, summary_fr 290 max. Density is fine, listing is not: if you need
   a semicolon or a third comma-separated item to fit everything in, you are listing instead of summarizing.
   Keep the single most consequential fact and drop the rest.
   BAD  (fr): "GitLab 19.4 ajoute les budgets de crédits par utilisateur, la visibilité des dépenses et les
              exportations d'utilisation détaillées; les administrateurs définissent les plafonds fixes avec
              les dérogations par utilisateur pour contrôler les dépenses IA."
-  GOOD (fr): "GitLab 19.4 permet de plafonner les crédits IA par utilisateur, avec dérogations ponctuelles
-             et export détaillé de la consommation."
+  GOOD (fr): "Les plafonds se posent par utilisateur, avec dérogations ponctuelles et export détaillé
+             de la consommation."   (n'ouvre pas sur GitLab, que le titre nomme déjà)
 - Extract facts from the raw summary. If it gives no concrete fact, state what the article establishes, in the subject's own terms. NEVER invent an impact or a benefit.
 - Mirror the source's level of certainty. If the source frames it as a report, rumor, or "reportedly", keep that hedging (en: "reportedly", "a report says"; fr: conditionnel like "racheterait" or "selon un rapport"). Never turn an unconfirmed report into a stated fact, and never add doubt the source does not express.
 - Native, plain language in both. Not translationese, not corporate.
