@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 SCRIPT_DIR = Path(__file__).parent
 # surchargeable le temps de comparer deux modeles sur un meme lot :
 # RADAR_MODEL=claude-sonnet-5 python3 scripts/summarize.py 39 2026
-MODEL = os.environ.get("RADAR_MODEL", "claude-haiku-4-5-20251001")
-# un modele qui reflechit consomme ce plafond avant d ecrire : RADAR_MAX_TOKENS=65536 pour lui
-MAX_TOKENS_RESUME = int(os.environ.get("RADAR_MAX_TOKENS", 16384))
+MODEL = os.environ.get("RADAR_MODEL", "claude-sonnet-5")
+# Sonnet reflechit avant d ecrire, et ce raisonnement sort du meme plafond que la reponse
+MAX_TOKENS_RESUME = int(os.environ.get("RADAR_MAX_TOKENS", 65536))
 SELECT_PROMPT = """You are a tech watch assistant for a DevOps/Cloud Engineer profile.
 
 You receive a list of tech articles from the past week (index, source, title).
