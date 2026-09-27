@@ -71,14 +71,15 @@ The title carries WHO did WHAT, nothing else. Every remaining detail (duration, 
 version, scope, condition) belongs to the summary. Pushing detail out of the title is what keeps it
 under budget, and what gives the summary something to say. The summary NEVER reopens on the title's
 subject: it starts on the detail.
-  BAD  titre  : "Anthropic s'engage a investir 11,6 milliards chez Akamai sur sept ans"
-       resume : "Anthropic s'est engagee a investir 11,6 milliards chez Akamai sur sept ans, avec un
-                 potentiel jusqu'a 20 milliards et une possible participation de 5 % au capital."
-       -> le titre porte un detail de trop, et le resume repete le titre avant d en venir au fait
-  GOOD titre  : "Anthropic investit 11,6 milliards chez Akamai"
-       resume : "L'engagement court sur sept ans, peut monter a 20 milliards et ouvre une
-                 participation de 5 % au capital."
-       -> "sur sept ans" a quitte le titre, qui raccourcit ; le resume ouvre sur ce qu il apporte
+  (exemple volontairement pris sur un fait clos, jamais sur l actualite de la semaine)
+  BAD  titre  : "Broadcom finalise le rachat de VMware pour 61 milliards de dollars"
+       resume : "Broadcom a finalise le rachat de VMware pour 61 milliards de dollars apres un long
+                 examen reglementaire."
+       -> le titre porte le montant, et le resume repete le titre au lieu d apporter la suite
+  GOOD titre  : "Broadcom finalise le rachat de VMware"
+       resume : "L operation porte sur 61 milliards de dollars et met fin a un long examen
+                 reglementaire dans plusieurs juridictions."
+       -> le montant a quitte le titre, qui raccourcit ; le resume ouvre sur ce qu il apporte
 
 TITLE rules (title = English headline, title_fr = French headline):
 - Rewrite a real headline from the facts. Do NOT translate or mechanically shorten the source title.
@@ -87,10 +88,8 @@ TITLE rules (title = English headline, title_fr = French headline):
 - The headline STOPS after the object. Cut any trailing purpose, location or means complement
   ("pour X", "sur X", "for X", "on X") whenever the headline still says who did what without it:
   that complement is the summary's job.
-  BAD  (fr): "Anthropic investit 11,6 milliards chez Akamai pour l'infrastructure cloud"   (73)
-  GOOD (fr): "Anthropic investit 11,6 milliards chez Akamai"                               (45)
-  BAD  (fr): "AWS autorise a traiter les donnees classifiees de l'OTAN sur le cloud"       (69)
-  GOOD (fr): "AWS autorise a traiter les donnees classifiees de l'OTAN"                    (56)
+  BAD  (fr): "Broadcom finalise le rachat de VMware pour 61 milliards de dollars"           (66)
+  GOOD (fr): "Broadcom finalise le rachat de VMware"                                       (37)
 - Subject, verb, object, with a CONJUGATED verb. Never a noun pile, and never a trailing status in parentheses: put Alpha/Beta/GA in the summary.
   BAD  (fr): "Kubernetes v1.37 Preemption du planificateur pour redimensionnement de Pod sur place (Alpha)"  (92 chars)
   GOOD (fr): "Kubernetes v1.37 preempte les Pods pour les redimensionner"  (58 chars)
@@ -114,7 +113,7 @@ TITLE rules (title = English headline, title_fr = French headline):
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence carrying what the TITLE LEFT OUT: the figure, the scope, the condition, the limit.
-- Length: summary_en 240 characters max, summary_fr 290 max. Density is fine, listing is not: if you need
+- Length: summary_en 150 characters max, summary_fr 180 max. Density is fine, listing is not: if you need
   a semicolon or a third comma-separated item to fit everything in, you are listing instead of summarizing.
   Keep the single most consequential fact and drop the rest.
   BAD  (fr): "GitLab 19.4 ajoute les budgets de crédits par utilisateur, la visibilité des dépenses et les
@@ -134,7 +133,7 @@ SUMMARY rules (summary_fr / summary_en):
   - source as subject: "CNCF article on X", "CNCF guidance on X", "GitLab addresses X" / "Article CNCF sur X", "Directives CNCF sur X"
     Say what changed or what the method is, never that an organisation published something about it.
     BAD : "CNCF guidance on integrating external identity providers with on-prem clusters using public client OAuth flows."
-    GOOD: "On-prem Kubernetes clusters can delegate auth to an external identity provider via public client OAuth flows, avoiding a shared client secret."
+    GOOD: "On-prem clusters can delegate auth to an external IdP via public client OAuth flows, with no shared secret."
 
 Examples (apply this exact style):
 - Source title: "Automating root cause analysis at scale: Multi-signal correlation for cloud native incident response"
@@ -185,7 +184,7 @@ STOP_WORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "for", "on",
 # fait ~19% de plus que l'anglais a contenu egal, un budget unique pousserait le
 # modele a tronquer le FR. Les budgets de resume sont cales sur le p90 du publie :
 # un garde-fou qui crie sur un tiers des resumes ne serait plus lu.
-LENGTH_LIMITS = {"title": 58, "title_fr": 68, "summary_en": 240, "summary_fr": 290}
+LENGTH_LIMITS = {"title": 58, "title_fr": 68, "summary_en": 165, "summary_fr": 200}
 
 # Nb max d'articles portant sur le meme acteur (1er mot significatif du titre).
 VENDOR_LIMIT = 3
