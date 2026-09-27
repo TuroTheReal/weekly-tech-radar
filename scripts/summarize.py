@@ -84,13 +84,12 @@ subject: it starts on the detail.
 TITLE rules (title = English headline, title_fr = French headline):
 - Rewrite a real headline from the facts. Do NOT translate or mechanically shorten the source title.
 - A headline, not a sentence: no subordinate clause, no explanatory colon, no trailing qualifier, no final period.
-- HARD LIMIT, count characters: title (English) 52 max, title_fr (French) 60 max. The headline STOPS
-  after the object: cut any trailing "pour X" / "sur X" / "for X" / "on X" complement whenever the
-  headline still says who did what without it. Over the limit is a failure, and that cut complement
-  is exactly what the summary opens on.
+- HARD LIMIT, count characters: title (English) 52 max, title_fr (French) 60 max. Over the limit is a failure, rewrite it shorter.
+- The headline STOPS after the object. Cut any trailing purpose, location or means complement
+  ("pour X", "sur X", "for X", "on X") whenever the headline still says who did what without it:
+  that complement is the summary's job.
   BAD  (fr): "Broadcom finalise le rachat de VMware pour 61 milliards de dollars"           (66)
   GOOD (fr): "Broadcom finalise le rachat de VMware"                                       (37)
-             resume : "L'operation porte sur 61 milliards de dollars et met fin a un long examen."
 - Subject, verb, object, with a CONJUGATED verb. Never a noun pile, and never a trailing status in parentheses: put Alpha/Beta/GA in the summary.
   BAD  (fr): "Kubernetes v1.37 Preemption du planificateur pour redimensionnement de Pod sur place (Alpha)"  (92 chars)
   GOOD (fr): "Kubernetes v1.37 preempte les Pods pour les redimensionner"  (58 chars)
@@ -248,12 +247,9 @@ def ask_model(client, prompt, max_tokens):
     Raises:
         ValueError: La réponse a été coupée par le plafond de tokens
     """
-    # en streaming : le SDK refuse un create() non streaming des que max_tokens laisse presager
-    # plus de dix minutes, et un modele qui reflechit a besoin de ce plafond haut.
-    with client.messages.stream(model=MODEL,
-                                max_tokens=max_tokens,
-                                messages=[{"role": "user", "content": prompt}]) as flux:
-        response = flux.get_final_message()
+    response = client.messages.create(model=MODEL,
+                                      max_tokens=max_tokens,
+                                      messages=[{"role": "user", "content": prompt}])
     # Seul signal fiable de troncature : un JSON coupé reste parfois parsable en apparence
     # (le parseur peut retomber sur un fragment intact à l'intérieur), et on publierait
     # alors une édition amputée sans rien signaler.
@@ -372,7 +368,7 @@ Résumé brut : {article.get('summary_raw', '')}
 
     for attempt in range(3):
         try:
-            return extract_json(ask_model(client, prompt, max_tokens=32768))
+            return extract_json(ask_model(client, prompt, max_tokens=16384))
         except (json.JSONDecodeError, ValueError) as e:
             print(f"Tentative {attempt + 1}/3 échouée : {e}")
             if attempt == 2:

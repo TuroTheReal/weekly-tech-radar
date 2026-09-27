@@ -137,16 +137,7 @@ class _FauxClient:
         self._reponse = types.SimpleNamespace(content=blocs, stop_reason=stop_reason)
         self.messages = self
 
-    def stream(self, **kwargs):
-        return self
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        return False
-
-    def get_final_message(self):
+    def create(self, **kwargs):
         return self._reponse
 
 def test_ask_model_lit_le_texte_apres_un_bloc_de_reflexion():
