@@ -6,8 +6,10 @@ SCRIPT_DIR = Path(__file__).parent
 # surchargeable le temps de comparer deux modeles sur un meme lot :
 # RADAR_MODEL=claude-sonnet-5 python3 scripts/summarize.py 39 2026
 MODEL = os.environ.get("RADAR_MODEL", "claude-sonnet-5")
-# Sonnet reflechit avant d ecrire, et ce raisonnement sort du meme plafond que la reponse
-MAX_TOKENS_RESUME = int(os.environ.get("RADAR_MAX_TOKENS", 65536))
+# 64000 : valeur conseillee en streaming, et plafond de sortie de Haiku 4.5, donc valide aussi
+# bien pour lui que pour Sonnet 5 qui monte a 128K. Le modele ne voit pas ce nombre, il ne
+# l incite donc pas a ecrire plus long : c est un filet, pas un reglage.
+MAX_TOKENS = int(os.environ.get("RADAR_MAX_TOKENS", 64000))
 SELECT_PROMPT = """You are a tech watch assistant for a DevOps/Cloud Engineer profile.
 
 You receive a list of tech articles from the past week (index, source, title).
@@ -255,6 +257,10 @@ def title_actor(title):
     version = next((w for w in words if re.match(r"^v?\d+\.\d", w)), "")
     return f"{actor} {version}".strip()
 
+class ReponseTronquee(ValueError):
+    """Reponse coupee par max_tokens. Rejouer la meme requete au meme plafond redonne la meme
+    coupure : la documentation demande de traiter ce cas comme un echec, pas comme un retry."""
+
 def ask_model(client, prompt, max_tokens):
     """Envoie un prompt au modèle et rend le texte de sa réponse.
 
@@ -279,7 +285,7 @@ def ask_model(client, prompt, max_tokens):
     # (le parseur peut retomber sur un fragment intact à l'intérieur), et on publierait
     # alors une édition amputée sans rien signaler.
     if response.stop_reason == "max_tokens":
-        raise ValueError(f"Réponse coupée au plafond de {max_tokens} tokens")
+        raise ReponseTronquee(f"Réponse coupée au plafond de {max_tokens} tokens")
     # content[0] n'est pas toujours le texte : un modele qui reflechit met son bloc de
     # reflexion en premier, et la reponse suit. Haiku n en produit pas, Sonnet 5 si.
     texte = next((bloc.text for bloc in response.content if bloc.type == "text"), None)
@@ -349,7 +355,7 @@ def select_articles(client, articles):
 
     prompt = SELECT_PROMPT.format(articles=articles_text)
 
-    return extract_json(ask_model(client, prompt, max_tokens=16384))
+    return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS))
 
 def dedup_articles(client, selected):
     """Envoie les articles sélectionnés à Claude API pour déduplication par sujet.
@@ -367,7 +373,7 @@ def dedup_articles(client, selected):
 
     prompt = DEDUP_PROMPT.format(articles=articles_text)
 
-    return extract_json(ask_model(client, prompt, max_tokens=16384))
+    return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS))
 
 def summarize_articles(client, selected):
     """Envoie les articles dédupliqués à Claude API pour résumé bilingue et catégorisation.
@@ -393,7 +399,9 @@ Résumé brut : {article.get('summary_raw', '')}
 
     for attempt in range(3):
         try:
-            return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS_RESUME))
+            return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS))
+        except ReponseTronquee:
+            raise
         except (json.JSONDecodeError, ValueError) as e:
             print(f"Tentative {attempt + 1}/3 échouée : {e}")
             if attempt == 2:
