@@ -351,7 +351,7 @@ Résumé brut : {article.get('summary_raw', '')}
 
     for attempt in range(3):
         try:
-            return extract_json(ask_model(client, prompt, max_tokens=32768))
+            return extract_json(ask_model(client, prompt, max_tokens=16384))
         except (json.JSONDecodeError, ValueError) as e:
             print(f"Tentative {attempt + 1}/3 échouée : {e}")
             if attempt == 2:
