@@ -302,7 +302,7 @@ def select_articles(client, articles):
 
     prompt = SELECT_PROMPT.format(articles=articles_text)
 
-    return extract_json(ask_model(client, prompt, max_tokens=4096))
+    return extract_json(ask_model(client, prompt, max_tokens=16384))
 
 def dedup_articles(client, selected):
     """Envoie les articles sélectionnés à Claude API pour déduplication par sujet.
@@ -320,7 +320,7 @@ def dedup_articles(client, selected):
 
     prompt = DEDUP_PROMPT.format(articles=articles_text)
 
-    return extract_json(ask_model(client, prompt, max_tokens=4096))
+    return extract_json(ask_model(client, prompt, max_tokens=16384))
 
 def summarize_articles(client, selected):
     """Envoie les articles dédupliqués à Claude API pour résumé bilingue et catégorisation.
