@@ -6,6 +6,8 @@ SCRIPT_DIR = Path(__file__).parent
 # surchargeable le temps de comparer deux modeles sur un meme lot :
 # RADAR_MODEL=claude-sonnet-5 python3 scripts/summarize.py 39 2026
 MODEL = os.environ.get("RADAR_MODEL", "claude-haiku-4-5-20251001")
+# un modele qui reflechit consomme ce plafond avant d ecrire : RADAR_MAX_TOKENS=65536 pour lui
+MAX_TOKENS_RESUME = int(os.environ.get("RADAR_MAX_TOKENS", 16384))
 SELECT_PROMPT = """You are a tech watch assistant for a DevOps/Cloud Engineer profile.
 
 You receive a list of tech articles from the past week (index, source, title).
@@ -247,9 +249,12 @@ def ask_model(client, prompt, max_tokens):
     Raises:
         ValueError: La réponse a été coupée par le plafond de tokens
     """
-    response = client.messages.create(model=MODEL,
-                                      max_tokens=max_tokens,
-                                      messages=[{"role": "user", "content": prompt}])
+    # streaming : le SDK refuse un create() non streaming quand max_tokens laisse presager plus
+    # de dix minutes, et un modele qui reflechit prend son raisonnement sur ce meme plafond.
+    with client.messages.stream(model=MODEL,
+                                max_tokens=max_tokens,
+                                messages=[{"role": "user", "content": prompt}]) as flux:
+        response = flux.get_final_message()
     # Seul signal fiable de troncature : un JSON coupé reste parfois parsable en apparence
     # (le parseur peut retomber sur un fragment intact à l'intérieur), et on publierait
     # alors une édition amputée sans rien signaler.
@@ -368,7 +373,7 @@ Résumé brut : {article.get('summary_raw', '')}
 
     for attempt in range(3):
         try:
-            return extract_json(ask_model(client, prompt, max_tokens=16384))
+            return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS_RESUME))
         except (json.JSONDecodeError, ValueError) as e:
             print(f"Tentative {attempt + 1}/3 échouée : {e}")
             if attempt == 2:
