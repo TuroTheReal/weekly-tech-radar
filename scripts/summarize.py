@@ -238,7 +238,12 @@ def ask_model(client, prompt, max_tokens):
     # alors une édition amputée sans rien signaler.
     if response.stop_reason == "max_tokens":
         raise ValueError(f"Réponse coupée au plafond de {max_tokens} tokens")
-    return response.content[0].text
+    # content[0] n'est pas toujours le texte : un modele qui reflechit met son bloc de
+    # reflexion en premier, et la reponse suit. Haiku n en produit pas, Sonnet 5 si.
+    texte = next((bloc.text for bloc in response.content if bloc.type == "text"), None)
+    if texte is None:
+        raise ValueError(f"Réponse sans bloc de texte (stop_reason={response.stop_reason})")
+    return texte
 
 def extract_json(text):
     """Extrait la première valeur JSON d'une réponse Claude, en ignorant la prose autour.
