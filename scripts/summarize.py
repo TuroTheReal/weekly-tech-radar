@@ -1,9 +1,15 @@
-import json, re, string, anthropic
+import json, os, re, string, sys, anthropic
 from pathlib import Path
 from datetime import datetime, timedelta
 
 SCRIPT_DIR = Path(__file__).parent
-MODEL = "claude-haiku-4-5-20251001"
+# surchargeable le temps de comparer deux modeles sur un meme lot :
+# RADAR_MODEL=claude-sonnet-5 python3 scripts/summarize.py 39 2026
+MODEL = os.environ.get("RADAR_MODEL", "claude-sonnet-5")
+# 64000 : valeur conseillee en streaming, et plafond de sortie de Haiku 4.5, donc valide aussi
+# bien pour lui que pour Sonnet 5 qui monte a 128K. Le modele ne voit pas ce nombre, il ne
+# l incite donc pas a ecrire plus long : c est un filet, pas un reglage.
+MAX_TOKENS = int(os.environ.get("RADAR_MAX_TOKENS", 64000))
 SELECT_PROMPT = """You are a tech watch assistant for a DevOps/Cloud Engineer profile.
 
 You receive a list of tech articles from the past week (index, source, title).
@@ -64,10 +70,30 @@ For EACH article below, produce, in BOTH French and English, a rewritten TITLE (
 French and English must be EQUIVALENT: same facts, same angle. The site ships both languages side by side.
 French runs about 15% longer than English for identical content. That is expected: respect the per-language limit below, never pad or truncate one language to match the other's character count.
 
+HOW TITLE AND SUMMARY SHARE THE WORK (read this before the rules below):
+The title carries WHO did WHAT, nothing else. Every remaining detail (duration, amount ceiling,
+version, scope, condition) belongs to the summary. Pushing detail out of the title is what keeps it
+under budget, and what gives the summary something to say. The summary NEVER reopens on the title's
+subject: it starts on the detail.
+  (exemple volontairement pris sur un fait clos, jamais sur l actualite de la semaine)
+  BAD  titre  : "Broadcom finalise le rachat de VMware pour 61 milliards de dollars"
+       resume : "Broadcom a finalise le rachat de VMware pour 61 milliards de dollars apres un long
+                 examen reglementaire."
+       -> le titre porte le montant, et le resume repete le titre au lieu d apporter la suite
+  GOOD titre  : "Broadcom finalise le rachat de VMware"
+       resume : "L operation porte sur 61 milliards de dollars et met fin a un long examen
+                 reglementaire dans plusieurs juridictions."
+       -> le montant a quitte le titre, qui raccourcit ; le resume ouvre sur ce qu il apporte
+
 TITLE rules (title = English headline, title_fr = French headline):
 - Rewrite a real headline from the facts. Do NOT translate or mechanically shorten the source title.
 - A headline, not a sentence: no subordinate clause, no explanatory colon, no trailing qualifier, no final period.
-- HARD LIMIT, count characters: title (English) 65 max, title_fr (French) 75 max. Over the limit is a failure, rewrite it shorter.
+- HARD LIMIT, count characters: title (English) 52 max, title_fr (French) 60 max. Over the limit is a failure, rewrite it shorter.
+- The headline STOPS after the object. Cut any trailing purpose, location or means complement
+  ("pour X", "sur X", "for X", "on X") whenever the headline still says who did what without it:
+  that complement is the summary's job.
+  BAD  (fr): "Broadcom finalise le rachat de VMware pour 61 milliards de dollars"           (66)
+  GOOD (fr): "Broadcom finalise le rachat de VMware"                                       (37)
 - Subject, verb, object, with a CONJUGATED verb. Never a noun pile, and never a trailing status in parentheses: put Alpha/Beta/GA in the summary.
   BAD  (fr): "Kubernetes v1.37 Preemption du planificateur pour redimensionnement de Pod sur place (Alpha)"  (92 chars)
   GOOD (fr): "Kubernetes v1.37 preempte les Pods pour les redimensionner"  (58 chars)
@@ -87,18 +113,18 @@ TITLE rules (title = English headline, title_fr = French headline):
 - No marketing tone, no clickbait, no em dash. Never reuse the vendor's own slogan as the headline,
   say what the product actually does. Their campaign words are not facts.
   BAD  (fr): "GitLab securise l'usine logicielle a la vitesse machine"  (55 chars, pure vendor slogan)
-  GOOD (fr): "GitLab decrit sa defense en trois couches pour le code agentique"  (63 chars)
+  GOOD (fr): "GitLab defend le code agentique en trois couches"  (47 chars)
 
 SUMMARY rules (summary_fr / summary_en):
-- One sentence, one concrete fact. Lead with what changed: version, figure, name, CVE, price.
-- Length: summary_en 240 characters max, summary_fr 290 max. Density is fine, listing is not: if you need
+- One sentence carrying what the TITLE LEFT OUT: the figure, the scope, the condition, the limit.
+- Length: summary_en 150 characters max, summary_fr 180 max. Density is fine, listing is not: if you need
   a semicolon or a third comma-separated item to fit everything in, you are listing instead of summarizing.
   Keep the single most consequential fact and drop the rest.
   BAD  (fr): "GitLab 19.4 ajoute les budgets de crédits par utilisateur, la visibilité des dépenses et les
              exportations d'utilisation détaillées; les administrateurs définissent les plafonds fixes avec
              les dérogations par utilisateur pour contrôler les dépenses IA."
-  GOOD (fr): "GitLab 19.4 permet de plafonner les crédits IA par utilisateur, avec dérogations ponctuelles
-             et export détaillé de la consommation."
+  GOOD (fr): "Les plafonds se posent par utilisateur, avec dérogations ponctuelles et export détaillé
+             de la consommation."   (n'ouvre pas sur GitLab, que le titre nomme déjà)
 - Extract facts from the raw summary. If it gives no concrete fact, state what the article establishes, in the subject's own terms. NEVER invent an impact or a benefit.
 - Mirror the source's level of certainty. If the source frames it as a report, rumor, or "reportedly", keep that hedging (en: "reportedly", "a report says"; fr: conditionnel like "racheterait" or "selon un rapport"). Never turn an unconfirmed report into a stated fact, and never add doubt the source does not express.
 - Native, plain language in both. Not translationese, not corporate.
@@ -111,24 +137,44 @@ SUMMARY rules (summary_fr / summary_en):
   - source as subject: "CNCF article on X", "CNCF guidance on X", "GitLab addresses X" / "Article CNCF sur X", "Directives CNCF sur X"
     Say what changed or what the method is, never that an organisation published something about it.
     BAD : "CNCF guidance on integrating external identity providers with on-prem clusters using public client OAuth flows."
-    GOOD: "On-prem Kubernetes clusters can delegate auth to an external identity provider via public client OAuth flows, avoiding a shared client secret."
+    GOOD: "On-prem clusters can delegate auth to an external IdP via public client OAuth flows, with no shared secret."
 
-Examples (apply this exact style):
-- Source title: "Automating root cause analysis at scale: Multi-signal correlation for cloud native incident response"
+<examples>
+In every example below, the headline names the actor and what it did, then stops. The summary
+opens on what the headline left out, and never repeats it.
+
+<example>
+  Source title: "Automating root cause analysis at scale: Multi-signal correlation for cloud native incident response"
   title: "Atlassian correlates signals to find root cause"
   title_fr: "Atlassian corrèle ses signaux pour trouver la cause racine"
-  summary_en: "Atlassian details a multi-signal correlation method to find the root cause of incidents across its microservices."
-  summary_fr: "Atlassian détaille sa méthode de corrélation multi-signaux pour trouver la cause racine des incidents sur ses microservices."
-- Source title: "Kubernetes v1.37: Pod Certificates and Cluster Trust Bundles"
+  summary_en: "The method cross-checks metrics, logs and traces across microservices instead of paging on a single alert."
+  summary_fr: "La méthode recoupe métriques, logs et traces sur les microservices, au lieu de déclencher sur une seule alerte."
+</example>
+
+<example>
+  Source title: "Kubernetes v1.37: Pod Certificates and Cluster Trust Bundles"
   title: "Kubernetes v1.37 moves Pod Certificates to GA"
   title_fr: "Kubernetes v1.37 fait passer les Pod Certificates en GA"
-  summary_en: "Kubernetes 1.37 moves Pod Certificates and Cluster Trust Bundles to GA: X.509 workload identity with auto-rotation, a replacement for service account JWTs."
-  summary_fr: "Kubernetes 1.37 fait passer Pod Certificates et Cluster Trust Bundles en GA : identité de workload en X.509 à rotation auto, en remplacement des JWT de service account."
-- Source title: "Scale before the spike: Predictive autoscaling for GPU workloads on Kubernetes"
+  summary_en: "X.509 workload identity with auto-rotation replaces service account JWTs, alongside Cluster Trust Bundles."
+  summary_fr: "L'identité de workload en X.509 à rotation automatique remplace les JWT de service account, avec les Cluster Trust Bundles."
+</example>
+
+<example>
+  Source title: "Scale before the spike: Predictive autoscaling for GPU workloads on Kubernetes"
   title: "A predictive autoscaler provisions GPUs before the peak"
   title_fr: "Un autoscaler prédictif provisionne les GPU avant le pic"
-  summary_en: "A predictive autoscaler provisions Kubernetes GPU nodes ahead of the traffic peak instead of reacting after it."
-  summary_fr: "Un autoscaler prédictif provisionne les nodes GPU Kubernetes avant le pic de trafic, au lieu de réagir après coup."
+  summary_en: "Provisioning follows the traffic curve ahead of time rather than after it, on Kubernetes GPU nodes."
+  summary_fr: "Le provisionnement anticipe la courbe de trafic au lieu de la suivre, sur les nodes GPU Kubernetes."
+</example>
+
+<example>
+  Source title: "Broadcom completes $61 billion VMware acquisition"
+  title: "Broadcom completes its VMware acquisition"
+  title_fr: "Broadcom finalise le rachat de VMware"
+  summary_en: "The deal is worth $61 billion and closes a review that ran across several jurisdictions."
+  summary_fr: "L'opération porte sur 61 milliards de dollars et clôt un examen mené dans plusieurs juridictions."
+</example>
+</examples>
 
 Categories (assign exactly one): Cloud, DevOps, Security, AI/ML, Business, Tech
 - Cloud: cloud services (AWS, Azure, GCP), infrastructure, pricing, data centers
@@ -162,7 +208,7 @@ STOP_WORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "for", "on",
 # fait ~19% de plus que l'anglais a contenu egal, un budget unique pousserait le
 # modele a tronquer le FR. Les budgets de resume sont cales sur le p90 du publie :
 # un garde-fou qui crie sur un tiers des resumes ne serait plus lu.
-LENGTH_LIMITS = {"title": 65, "title_fr": 75, "summary_en": 240, "summary_fr": 290}
+LENGTH_LIMITS = {"title": 58, "title_fr": 68, "summary_en": 165, "summary_fr": 200}
 
 # Nb max d'articles portant sur le meme acteur (1er mot significatif du titre).
 VENDOR_LIMIT = 3
@@ -211,6 +257,10 @@ def title_actor(title):
     version = next((w for w in words if re.match(r"^v?\d+\.\d", w)), "")
     return f"{actor} {version}".strip()
 
+class ReponseTronquee(ValueError):
+    """Reponse coupee par max_tokens. Rejouer la meme requete au meme plafond redonne la meme
+    coupure : la documentation demande de traiter ce cas comme un echec, pas comme un retry."""
+
 def ask_model(client, prompt, max_tokens):
     """Envoie un prompt au modèle et rend le texte de sa réponse.
 
@@ -225,15 +275,25 @@ def ask_model(client, prompt, max_tokens):
     Raises:
         ValueError: La réponse a été coupée par le plafond de tokens
     """
-    response = client.messages.create(model=MODEL,
-                                      max_tokens=max_tokens,
-                                      messages=[{"role": "user", "content": prompt}])
+    # streaming : le SDK refuse un create() non streaming quand max_tokens laisse presager plus
+    # de dix minutes, et un modele qui reflechit prend son raisonnement sur ce meme plafond.
+    with client.messages.stream(model=MODEL,
+                                max_tokens=max_tokens,
+                                messages=[{"role": "user", "content": prompt}]) as flux:
+        response = flux.get_final_message()
     # Seul signal fiable de troncature : un JSON coupé reste parfois parsable en apparence
     # (le parseur peut retomber sur un fragment intact à l'intérieur), et on publierait
     # alors une édition amputée sans rien signaler.
     if response.stop_reason == "max_tokens":
-        raise ValueError(f"Réponse coupée au plafond de {max_tokens} tokens")
-    return response.content[0].text
+        raise ReponseTronquee(f"Réponse coupée au plafond de {max_tokens} tokens")
+    # content[0] n'est pas toujours le texte : un modele qui reflechit met son bloc de
+    # reflexion en premier, et la reponse suit. Haiku n en produit pas, Sonnet 5 si.
+    u = response.usage
+    print(f"  [{MODEL}] {u.input_tokens} tokens en entrée, {u.output_tokens} en sortie")
+    texte = next((bloc.text for bloc in response.content if bloc.type == "text"), None)
+    if texte is None:
+        raise ValueError(f"Réponse sans bloc de texte (stop_reason={response.stop_reason})")
+    return texte
 
 def extract_json(text):
     """Extrait la première valeur JSON d'une réponse Claude, en ignorant la prose autour.
@@ -297,7 +357,7 @@ def select_articles(client, articles):
 
     prompt = SELECT_PROMPT.format(articles=articles_text)
 
-    return extract_json(ask_model(client, prompt, max_tokens=4096))
+    return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS))
 
 def dedup_articles(client, selected):
     """Envoie les articles sélectionnés à Claude API pour déduplication par sujet.
@@ -315,7 +375,7 @@ def dedup_articles(client, selected):
 
     prompt = DEDUP_PROMPT.format(articles=articles_text)
 
-    return extract_json(ask_model(client, prompt, max_tokens=4096))
+    return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS))
 
 def summarize_articles(client, selected):
     """Envoie les articles dédupliqués à Claude API pour résumé bilingue et catégorisation.
@@ -341,7 +401,9 @@ Résumé brut : {article.get('summary_raw', '')}
 
     for attempt in range(3):
         try:
-            return extract_json(ask_model(client, prompt, max_tokens=16384))
+            return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS))
+        except ReponseTronquee:
+            raise
         except (json.JSONDecodeError, ValueError) as e:
             print(f"Tentative {attempt + 1}/3 échouée : {e}")
             if attempt == 2:
@@ -453,21 +515,40 @@ def check_lengths(articles):
 
 if __name__ == "__main__":
     now = datetime.now()
-    year, week, _ = now.isocalendar()
+    # semaine en argument comme generate_html.py : sert a rejouer un lot deja collecte,
+    # seule facon de comparer deux versions du prompt a jeu d articles constant
+    rejouer = "--rejouer" in sys.argv
+    positionnels = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if positionnels:
+        week = int(positionnels[0])
+        year = int(positionnels[1]) if len(positionnels) > 1 else now.year
+    else:
+        year, week, _ = now.isocalendar()
     path = SCRIPT_DIR.parent / "data" / str(year) / f"week-{week:02d}.json"
+    selection_path = path.with_name(f"week-{week:02d}-selection.json")
 
     articles = load_json(path)
     print(f"Loaded {len(articles['articles'])} articles from week {articles['week']}")
 
     client = anthropic.Anthropic()
-    indices = select_articles(client, articles['articles'])
-    print(f"Selected {len(indices)} articles")
+    # select et dedup sont deux appels LLM non deterministes : refaits a chaque essai, ils
+    # changent le lot et on ne compare plus deux versions du prompt mais deux echantillons.
+    # --rejouer repart de la selection figee, et ne refait que le resume.
+    if rejouer and selection_path.exists():
+        deduped = load_json(selection_path)["articles"]
+        print(f"Selection figée rejouée : {len(deduped)} articles ({selection_path.name})")
+    else:
+        indices = select_articles(client, articles['articles'])
+        print(f"Selected {len(indices)} articles")
 
-    selected = [articles['articles'][i] for i in indices]
+        selected = [articles['articles'][i] for i in indices]
 
-    keep_indices = dedup_articles(client, selected)
-    deduped = [selected[i] for i in keep_indices]
-    print(f"Deduped: {len(selected)} -> {len(deduped)} articles")
+        keep_indices = dedup_articles(client, selected)
+        deduped = [selected[i] for i in keep_indices]
+        print(f"Deduped: {len(selected)} -> {len(deduped)} articles")
+
+        selection_path.write_text(json.dumps({"articles": deduped}, ensure_ascii=False, indent=2))
+        print(f"Sélection figée dans {selection_path.name}, rejouable avec --rejouer")
 
     enriched = summarize_articles(client, deduped)
     print(f"Summarized {len(enriched)} articles")

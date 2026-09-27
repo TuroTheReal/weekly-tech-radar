@@ -126,15 +126,52 @@ def test_meta_description_porte_son_prefixe():
         assert d.startswith(attendu), f"{lang} : préfixe absent de « {d[:40]} »"
         assert len(d) <= gh.META_DESC_BUDGET
 
+def _bloc(type_, **kw):
+    return types.SimpleNamespace(type=type_, **kw)
+
 class _FauxClient:
-    """Client Anthropic bouchonné : rend un texte fixe et un stop_reason choisi."""
-    def __init__(self, texte, stop_reason):
+    """Client Anthropic bouchonné : rend des blocs fixes et un stop_reason choisi."""
+    def __init__(self, texte, stop_reason, avec_reflexion=False):
+        blocs = [_bloc("thinking", thinking="...")] if avec_reflexion else []
+        blocs.append(_bloc("text", text=texte))
         self._reponse = types.SimpleNamespace(
-            content=[types.SimpleNamespace(text=texte)], stop_reason=stop_reason)
+            content=blocs, stop_reason=stop_reason,
+            usage=types.SimpleNamespace(input_tokens=0, output_tokens=0))
         self.messages = self
 
-    def create(self, **kwargs):
+    appels = 0
+
+    def stream(self, **kwargs):
+        type(self).appels += 1
+        self.appels_instance = getattr(self, "appels_instance", 0) + 1
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def get_final_message(self):
         return self._reponse
+
+def test_ask_model_lit_le_texte_apres_un_bloc_de_reflexion():
+    # Un modele qui reflechit place son bloc de reflexion en premier : lire content[0]
+    # levait AttributeError des qu on passait de Haiku a Sonnet 5.
+    client = _FauxClient("[0, 1]", "end_turn", avec_reflexion=True)
+    assert sz.ask_model(client, "prompt", 16384) == "[0, 1]"
+
+def test_summarize_ne_rejoue_pas_une_reponse_tronquee():
+    # Rejouer la meme requete au meme plafond redonne la meme coupure : on l a paye trois fois
+    # en conditions reelles. La troncature doit lever tout de suite, le retry x3 ne sert qu aux
+    # reponses mal formees.
+    client = _FauxClient('[{"title": "A"}]', "max_tokens")
+    try:
+        sz.summarize_articles(client, [{"title": "t", "url": "u", "source": "s"}])
+    except sz.ReponseTronquee:
+        assert client.appels_instance == 1, f"{client.appels_instance} appels au lieu d un seul"
+        return
+    assert False, "une reponse tronquee doit lever sans retenter"
 
 def test_ask_model_rend_le_texte():
     assert sz.ask_model(_FauxClient("[0, 1]", "end_turn"), "prompt", 4096) == "[0, 1]"
