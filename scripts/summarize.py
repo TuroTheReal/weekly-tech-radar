@@ -483,25 +483,38 @@ if __name__ == "__main__":
     now = datetime.now()
     # semaine en argument comme generate_html.py : sert a rejouer un lot deja collecte,
     # seule facon de comparer deux versions du prompt a jeu d articles constant
-    if len(sys.argv) > 1:
-        week = int(sys.argv[1])
-        year = int(sys.argv[2]) if len(sys.argv) > 2 else now.year
+    rejouer = "--rejouer" in sys.argv
+    positionnels = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if positionnels:
+        week = int(positionnels[0])
+        year = int(positionnels[1]) if len(positionnels) > 1 else now.year
     else:
         year, week, _ = now.isocalendar()
     path = SCRIPT_DIR.parent / "data" / str(year) / f"week-{week:02d}.json"
+    selection_path = path.with_name(f"week-{week:02d}-selection.json")
 
     articles = load_json(path)
     print(f"Loaded {len(articles['articles'])} articles from week {articles['week']}")
 
     client = anthropic.Anthropic()
-    indices = select_articles(client, articles['articles'])
-    print(f"Selected {len(indices)} articles")
+    # select et dedup sont deux appels LLM non deterministes : refaits a chaque essai, ils
+    # changent le lot et on ne compare plus deux versions du prompt mais deux echantillons.
+    # --rejouer repart de la selection figee, et ne refait que le resume.
+    if rejouer and selection_path.exists():
+        deduped = load_json(selection_path)["articles"]
+        print(f"Selection figée rejouée : {len(deduped)} articles ({selection_path.name})")
+    else:
+        indices = select_articles(client, articles['articles'])
+        print(f"Selected {len(indices)} articles")
 
-    selected = [articles['articles'][i] for i in indices]
+        selected = [articles['articles'][i] for i in indices]
 
-    keep_indices = dedup_articles(client, selected)
-    deduped = [selected[i] for i in keep_indices]
-    print(f"Deduped: {len(selected)} -> {len(deduped)} articles")
+        keep_indices = dedup_articles(client, selected)
+        deduped = [selected[i] for i in keep_indices]
+        print(f"Deduped: {len(selected)} -> {len(deduped)} articles")
+
+        selection_path.write_text(json.dumps({"articles": deduped}, ensure_ascii=False, indent=2))
+        print(f"Sélection figée dans {selection_path.name}, rejouable avec --rejouer")
 
     enriched = summarize_articles(client, deduped)
     print(f"Summarized {len(enriched)} articles")
