@@ -83,7 +83,14 @@ subject: it starts on the detail.
 TITLE rules (title = English headline, title_fr = French headline):
 - Rewrite a real headline from the facts. Do NOT translate or mechanically shorten the source title.
 - A headline, not a sentence: no subordinate clause, no explanatory colon, no trailing qualifier, no final period.
-- HARD LIMIT, count characters: title (English) 65 max, title_fr (French) 75 max. Over the limit is a failure, rewrite it shorter.
+- HARD LIMIT, count characters: title (English) 52 max, title_fr (French) 60 max. Over the limit is a failure, rewrite it shorter.
+- The headline STOPS after the object. Cut any trailing purpose, location or means complement
+  ("pour X", "sur X", "for X", "on X") whenever the headline still says who did what without it:
+  that complement is the summary's job.
+  BAD  (fr): "Anthropic investit 11,6 milliards chez Akamai pour l'infrastructure cloud"   (73)
+  GOOD (fr): "Anthropic investit 11,6 milliards chez Akamai"                               (45)
+  BAD  (fr): "AWS autorise a traiter les donnees classifiees de l'OTAN sur le cloud"       (69)
+  GOOD (fr): "AWS autorise a traiter les donnees classifiees de l'OTAN"                    (56)
 - Subject, verb, object, with a CONJUGATED verb. Never a noun pile, and never a trailing status in parentheses: put Alpha/Beta/GA in the summary.
   BAD  (fr): "Kubernetes v1.37 Preemption du planificateur pour redimensionnement de Pod sur place (Alpha)"  (92 chars)
   GOOD (fr): "Kubernetes v1.37 preempte les Pods pour les redimensionner"  (58 chars)
@@ -103,7 +110,7 @@ TITLE rules (title = English headline, title_fr = French headline):
 - No marketing tone, no clickbait, no em dash. Never reuse the vendor's own slogan as the headline,
   say what the product actually does. Their campaign words are not facts.
   BAD  (fr): "GitLab securise l'usine logicielle a la vitesse machine"  (55 chars, pure vendor slogan)
-  GOOD (fr): "GitLab decrit sa defense en trois couches pour le code agentique"  (63 chars)
+  GOOD (fr): "GitLab defend le code agentique en trois couches"  (47 chars)
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence carrying what the TITLE LEFT OUT: the figure, the scope, the condition, the limit.
@@ -178,7 +185,7 @@ STOP_WORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "for", "on",
 # fait ~19% de plus que l'anglais a contenu egal, un budget unique pousserait le
 # modele a tronquer le FR. Les budgets de resume sont cales sur le p90 du publie :
 # un garde-fou qui crie sur un tiers des resumes ne serait plus lu.
-LENGTH_LIMITS = {"title": 65, "title_fr": 75, "summary_en": 240, "summary_fr": 290}
+LENGTH_LIMITS = {"title": 58, "title_fr": 68, "summary_en": 240, "summary_fr": 290}
 
 # Nb max d'articles portant sur le meme acteur (1er mot significatif du titre).
 VENDOR_LIMIT = 3
