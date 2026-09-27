@@ -93,9 +93,12 @@ TITLE rules (title = English headline, title_fr = French headline):
 
 SUMMARY rules (summary_fr / summary_en):
 - One sentence carrying what the TITLE LEFT OUT: the figure, the scope, the condition, the limit.
-  Never restate the title. A reader who just read it must learn something here.
-  BAD  (fr): "Anthropic s'est engagee a investir 11,6 milliards sur sept ans aupres d'Akamai."  (le titre le disait deja)
-  GOOD (fr): "L'engagement couvre l'infrastructure cloud CPU et ouvre une participation possible de 5 % au capital."
+  NEVER open on the title's subject, start straight on the new element. Naming the subject again
+  eats the sentence, and the one fact worth reading lands too late or not at all.
+  BAD  (fr): "Anthropic s'est engagee a investir 11,6 milliards chez Akamai sur sept ans, avec un
+             potentiel jusqu'a 20 milliards et une possible participation de 5 % au capital."
+  GOOD (fr): "Le montant peut monter a 20 milliards et s'accompagne d'une possible participation de
+             5 % au capital."
 - Length: summary_en 240 characters max, summary_fr 290 max. Density is fine, listing is not: if you need
   a semicolon or a third comma-separated item to fit everything in, you are listing instead of summarizing.
   Keep the single most consequential fact and drop the rest.
