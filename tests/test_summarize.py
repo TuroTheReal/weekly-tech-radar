@@ -134,7 +134,9 @@ class _FauxClient:
     def __init__(self, texte, stop_reason, avec_reflexion=False):
         blocs = [_bloc("thinking", thinking="...")] if avec_reflexion else []
         blocs.append(_bloc("text", text=texte))
-        self._reponse = types.SimpleNamespace(content=blocs, stop_reason=stop_reason)
+        self._reponse = types.SimpleNamespace(
+            content=blocs, stop_reason=stop_reason,
+            usage=types.SimpleNamespace(input_tokens=0, output_tokens=0))
         self.messages = self
 
     appels = 0

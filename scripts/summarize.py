@@ -288,6 +288,8 @@ def ask_model(client, prompt, max_tokens):
         raise ReponseTronquee(f"Réponse coupée au plafond de {max_tokens} tokens")
     # content[0] n'est pas toujours le texte : un modele qui reflechit met son bloc de
     # reflexion en premier, et la reponse suit. Haiku n en produit pas, Sonnet 5 si.
+    u = response.usage
+    print(f"  [{MODEL}] {u.input_tokens} tokens en entrée, {u.output_tokens} en sortie")
     texte = next((bloc.text for bloc in response.content if bloc.type == "text"), None)
     if texte is None:
         raise ValueError(f"Réponse sans bloc de texte (stop_reason={response.stop_reason})")
