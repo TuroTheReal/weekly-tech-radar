@@ -90,6 +90,11 @@ TITLE rules (title = English headline, title_fr = French headline):
   that complement is the summary's job.
   BAD  (fr): "Broadcom finalise le rachat de VMware pour 61 milliards de dollars"           (66)
   GOOD (fr): "Broadcom finalise le rachat de VMware"                                       (37)
+- Prefer the VERB to the noun phrase. French nominalisation is what blows the budget:
+  "autorise a traiter" beats "obtient l'approbation pour le traitement de", "repenser le logiciel"
+  beats "repenser la conception logicielle". Same fact, twenty signs less.
+  BAD  (fr): "Broadcom obtient l'approbation des regulateurs pour le rachat de VMware"     (70)
+  GOOD (fr): "Broadcom autorise a racheter VMware"                                         (34)
 - Subject, verb, object, with a CONJUGATED verb. Never a noun pile, and never a trailing status in parentheses: put Alpha/Beta/GA in the summary.
   BAD  (fr): "Kubernetes v1.37 Preemption du planificateur pour redimensionnement de Pod sur place (Alpha)"  (92 chars)
   GOOD (fr): "Kubernetes v1.37 preempte les Pods pour les redimensionner"  (58 chars)
