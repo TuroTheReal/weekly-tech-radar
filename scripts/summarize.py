@@ -6,6 +6,9 @@ SCRIPT_DIR = Path(__file__).parent
 # surchargeable le temps de comparer deux modeles sur un meme lot :
 # RADAR_MODEL=claude-sonnet-5 python3 scripts/summarize.py 39 2026
 MODEL = os.environ.get("RADAR_MODEL", "claude-sonnet-5")
+# la deduplication est un tri mecanique : ni Sonnet ni raisonnement. Haiku 4.5 n accepte pas
+# le parametre effort, il ne faut donc jamais le lui envoyer.
+MODEL_TRI = os.environ.get("RADAR_MODEL_TRI", "claude-haiku-4-5-20251001")
 # 64000 : valeur conseillee en streaming, et plafond de sortie de Haiku 4.5, donc valide aussi
 # bien pour lui que pour Sonnet 5 qui monte a 128K. Le modele ne voit pas ce nombre, il ne
 # l incite donc pas a ecrire plus long : c est un filet, pas un reglage.
@@ -261,7 +264,7 @@ class ReponseTronquee(ValueError):
     """Reponse coupee par max_tokens. Rejouer la meme requete au meme plafond redonne la meme
     coupure : la documentation demande de traiter ce cas comme un echec, pas comme un retry."""
 
-def ask_model(client, prompt, max_tokens):
+def ask_model(client, prompt, max_tokens, model=None, effort=None):
     """Envoie un prompt au modèle et rend le texte de sa réponse.
 
     Args:
@@ -277,9 +280,12 @@ def ask_model(client, prompt, max_tokens):
     """
     # streaming : le SDK refuse un create() non streaming quand max_tokens laisse presager plus
     # de dix minutes, et un modele qui reflechit prend son raisonnement sur ce meme plafond.
-    with client.messages.stream(model=MODEL,
-                                max_tokens=max_tokens,
-                                messages=[{"role": "user", "content": prompt}]) as flux:
+    model = model or MODEL
+    params = {"model": model, "max_tokens": max_tokens,
+              "messages": [{"role": "user", "content": prompt}]}
+    if effort:
+        params["output_config"] = {"effort": effort}
+    with client.messages.stream(**params) as flux:
         response = flux.get_final_message()
     # Seul signal fiable de troncature : un JSON coupé reste parfois parsable en apparence
     # (le parseur peut retomber sur un fragment intact à l'intérieur), et on publierait
@@ -289,7 +295,8 @@ def ask_model(client, prompt, max_tokens):
     # content[0] n'est pas toujours le texte : un modele qui reflechit met son bloc de
     # reflexion en premier, et la reponse suit. Haiku n en produit pas, Sonnet 5 si.
     u = response.usage
-    print(f"  [{MODEL}] {u.input_tokens} tokens en entrée, {u.output_tokens} en sortie")
+    detail = f"{model} effort={effort}" if effort else model
+    print(f"  [{detail}] {u.input_tokens} tokens en entrée, {u.output_tokens} en sortie")
     texte = next((bloc.text for bloc in response.content if bloc.type == "text"), None)
     if texte is None:
         raise ValueError(f"Réponse sans bloc de texte (stop_reason={response.stop_reason})")
@@ -357,7 +364,7 @@ def select_articles(client, articles):
 
     prompt = SELECT_PROMPT.format(articles=articles_text)
 
-    return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS))
+    return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS, effort="low"))
 
 def dedup_articles(client, selected):
     """Envoie les articles sélectionnés à Claude API pour déduplication par sujet.
@@ -375,7 +382,7 @@ def dedup_articles(client, selected):
 
     prompt = DEDUP_PROMPT.format(articles=articles_text)
 
-    return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS))
+    return extract_json(ask_model(client, prompt, max_tokens=MAX_TOKENS, model=MODEL_TRI))
 
 def summarize_articles(client, selected):
     """Envoie les articles dédupliqués à Claude API pour résumé bilingue et catégorisation.

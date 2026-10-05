@@ -142,6 +142,7 @@ class _FauxClient:
     appels = 0
 
     def stream(self, **kwargs):
+        self.dernier_appel = kwargs
         type(self).appels += 1
         self.appels_instance = getattr(self, "appels_instance", 0) + 1
         return self
@@ -172,6 +173,14 @@ def test_summarize_ne_rejoue_pas_une_reponse_tronquee():
         assert client.appels_instance == 1, f"{client.appels_instance} appels au lieu d un seul"
         return
     assert False, "une reponse tronquee doit lever sans retenter"
+
+def test_ask_model_ne_passe_effort_que_si_demande():
+    # Haiku 4.5 n accepte pas output_config.effort : l envoyer ferait echouer l appel.
+    client = _FauxClient("[0]", "end_turn")
+    sz.ask_model(client, "prompt", 1000, model="claude-haiku-4-5-20251001")
+    assert "output_config" not in client.dernier_appel, "effort envoye a un modele qui le refuse"
+    sz.ask_model(client, "prompt", 1000, effort="low")
+    assert client.dernier_appel["output_config"] == {"effort": "low"}
 
 def test_ask_model_rend_le_texte():
     assert sz.ask_model(_FauxClient("[0, 1]", "end_turn"), "prompt", 4096) == "[0, 1]"
