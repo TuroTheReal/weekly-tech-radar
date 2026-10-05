@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Status-Active-brightgreen.svg"/>
   <img src="https://img.shields.io/badge/Updated-2026--03-blue.svg"/>
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white"/>
-  <img src="https://img.shields.io/badge/Claude_Haiku-Anthropic-6B4FBB?logo=anthropic&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Claude_Sonnet-Anthropic-6B4FBB?logo=anthropic&logoColor=white"/>
   <img src="https://img.shields.io/badge/GitHub_Actions-CI/CD-2088FF?logo=githubactions&logoColor=white"/>
 </p>
 
@@ -29,14 +29,14 @@
 
 ## 📌 About
 
-Automated pipeline that generates a weekly tech radar edition for my [portfolio](https://arthurbernard.dev). Every Saturday, it collects articles from 27 RSS/Atom feeds, uses Claude Haiku to select and summarize the most relevant ones (FR + EN), generates bilingual HTML pages, and opens a PR on the portfolio repo.
+Automated pipeline that generates a weekly tech radar edition for my [portfolio](https://arthurbernard.dev). Every Saturday, it collects articles from 27 RSS/Atom feeds, uses Claude (Sonnet 5 by default) to select and summarize the most relevant ones (FR + EN), generates bilingual HTML pages, and opens a PR on the portfolio repo.
 
 ### Tech Stack
 
 | Component | Technology |
 |-----------|------------|
 | Language | Python 3.12 |
-| AI | Claude Haiku 4.5 (Anthropic API) — selection, dedup, summarization |
+| AI | Claude Sonnet 5 by default (Anthropic API), overridable with `RADAR_MODEL`: selection, dedup, summarization |
 | RSS Parsing | feedparser |
 | HTML Generation | Jinja2-style string templating |
 | CI/CD | GitHub Actions (cron + workflow_dispatch) |
@@ -57,7 +57,7 @@ Automated pipeline that generates a weekly tech radar edition for my [portfolio]
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   GitHub Actions (cron)                  │
-│                  Every Saturday 8:00 UTC                 │
+│                  Every Saturday 5:00 UTC                 │
 └──────────────┬──────────────────────────────────────────┘
                │
                ▼
@@ -69,7 +69,7 @@ Automated pipeline that generates a weekly tech radar edition for my [portfolio]
            │ data/YYYY/week-XX.json
            ▼
 ┌──────────────────────┐     Anthropic API
-│   2. summarize.py    │◄──── Claude Haiku 4.5
+│   2. summarize.py    │◄──── Claude Sonnet 5
 │   Select top 40      │      - Selection
 │   Deduplicate        │      - Deduplication
 │   Summarize FR + EN  │      - Bilingual summaries
@@ -96,7 +96,7 @@ Automated pipeline that generates a weekly tech radar edition for my [portfolio]
 ### Pipeline Flow
 
 1. **Collect** — Parses 27 RSS/Atom feeds, filters articles from the last 7 days, saves raw data
-2. **Summarize** — Claude Haiku selects top 40, deduplicates (~35), writes FR + EN summaries, assigns categories (cloud, devops, ia, business, tech, secu)
+2. **Summarize**: Claude selects top 40, deduplicates (~35), writes FR + EN summaries, assigns categories (cloud, devops, ia, business, tech, secu)
 3. **Publish** — Clones portfolio repo, generates edition HTML (FR + EN), updates listing + homepage cards + inter-edition nav, commits, pushes branch, opens PR
 
 ---
@@ -185,7 +185,7 @@ python3 scripts/publish.py        # Generate HTML + open PR
 
 | Variable | Description |
 |----------|-------------|
-| `ANTHROPIC_API_KEY` | Anthropic API key for Claude Haiku |
+| `ANTHROPIC_API_KEY` | Anthropic API key for Claude |
 | `PAT_PORTFOLIO` | GitHub Personal Access Token (repo scope) for PR creation |
 
 ### GitHub Actions Secrets
@@ -212,7 +212,7 @@ Edit `scripts/sources.yaml` to add/remove/modify feeds. Each source requires:
 
 ### Automated (GitHub Actions)
 
-The pipeline runs automatically every **Saturday at 8:00 UTC** via cron.
+The pipeline runs automatically every **Saturday at 5:00 UTC** via cron (`0 5 * * 6` in `.github/workflows/weekly.yml`).
 
 Manual trigger: **Actions** tab → **Weekly Tech Radar** → **Run workflow**
 
