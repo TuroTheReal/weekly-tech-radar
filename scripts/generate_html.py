@@ -9,7 +9,7 @@
 # ├── update_nav()          — ajouter lien "next" sur l'édition précédente EN + FR
 # └── main                  — orchestrer tout
 
-import json, sys
+import json, re, sys
 from datetime import datetime
 from dates import reference_date
 from pathlib import Path
@@ -393,7 +393,8 @@ def update_index(enriched, grouped, portfolio_dir):
             else:
                 rebuilt += 'class="radar-card"' + cards_split[i]
 
-        all_cards = rebuilt
+        # rstrip : sans lui, chaque run ajoute une ligne vide avant le marqueur fermant
+        all_cards = rebuilt.rstrip()
         new_html = before + "<!-- RADAR_CARDS -->\n" + all_cards + "\n<!-- /RADAR_CARDS -->" + after
         with open(index_path, 'w') as f:
             f.write(new_html)
@@ -490,6 +491,8 @@ def update_nav(enriched, portfolio_dir):
     <span class="article-nav-title">{next_label}</span>
 </a>'''
 
+        # Retirer un lien next deja present (relance de la meme semaine) : sinon il est double
+        existing_nav = re.sub(r'\n?<a href="[^"]*" class="article-nav-link article-nav-next">.*?</a>\n?', '', existing_nav, flags=re.DOTALL)
         # Ajouter next à côté du prev existant
         new_nav = existing_nav + next_link
 

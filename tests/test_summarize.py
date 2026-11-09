@@ -259,6 +259,47 @@ def test_extract_json_sans_json_leve():
         return
     assert False, "une réponse sans JSON doit lever, pas renvoyer None"
 
+def _mini_portfolio(tmp, edition):
+    """Cree l'edition precedente de `edition` (EN + FR) avec son seul lien prev, renvoie la page FR."""
+    year, week = edition["year"], edition["week"] - 1
+    for lang in ("en", "fr"):
+        d = Path(tmp) / lang / gh.TECH_RADAR_DIR
+        d.mkdir(parents=True)
+        (d / f"{year}-week-{week:02d}.html").write_text(
+            f'<nav><!-- RADAR_NAV -->\n<a href="/x/{year}-week-{week - 1:02d}.html" class="article-nav-link article-nav-prev">'
+            '<span>prev</span></a>\n<!-- /RADAR_NAV --></nav>')
+    return Path(tmp) / "fr" / gh.TECH_RADAR_DIR / f"{year}-week-{week:02d}.html"
+
+def test_update_nav_relance_ne_double_pas_le_lien_next():
+    import tempfile
+    edition = {"week": 10, "year": 2026}
+    with tempfile.TemporaryDirectory() as tmp:
+        page_precedente = _mini_portfolio(tmp, edition)
+        gh.update_nav(edition, Path(tmp))
+        apres_un_run = page_precedente.read_text()
+        gh.update_nav(edition, Path(tmp))
+        gh.update_nav(edition, Path(tmp))
+        assert page_precedente.read_text() == apres_un_run, "une relance modifie la page"
+        assert apres_un_run.count("article-nav-next") == 1
+        assert apres_un_run.count("article-nav-prev") == 1, "le lien prev doit rester"
+
+def test_dates_reference_date_valide_et_refuse():
+    import os, dates
+    os.environ["RADAR_DATE"] = "2026-11-07"
+    try:
+        ref = dates.reference_date()
+        assert (ref.isocalendar()[1], ref.hour) == (45, 5)
+        for bad in ("07/11/2026", "2026-02-30", "2999-01-01"):
+            os.environ["RADAR_DATE"] = bad
+            try:
+                dates.reference_date()
+                assert False, f"{bad} aurait du planter"
+            except SystemExit:
+                pass
+    finally:
+        del os.environ["RADAR_DATE"]
+
+
 if __name__ == "__main__":
     import io, contextlib
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_")]
