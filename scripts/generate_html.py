@@ -11,6 +11,7 @@
 
 import json, sys
 from datetime import datetime
+from dates import reference_date
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
@@ -501,9 +502,9 @@ if __name__ == '__main__':
     portfolio_dir = Path(sys.argv[1])
     if len(sys.argv) > 2:
         week = int(sys.argv[2])
-        year = int(sys.argv[3]) if len(sys.argv) > 3 else datetime.now().year
+        year = int(sys.argv[3]) if len(sys.argv) > 3 else reference_date().year
     else:
-        year, week, _ = datetime.now().isocalendar()
+        year, week, _ = reference_date().isocalendar()
     path = SCRIPT_DIR.parent / "data" / str(year) / f"week-{week:02d}-enriched.json"
 
     enriched = load_json(path)

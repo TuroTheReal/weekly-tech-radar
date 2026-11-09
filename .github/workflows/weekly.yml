@@ -4,10 +4,19 @@ on:
   schedule:
     - cron: '0 5 * * 6'
   workflow_dispatch:
+    inputs:
+      date:
+        description: "Rattrapage : samedi de l'edition manquee (YYYY-MM-DD). Vide = semaine courante."
+        required: false
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # passe par env, jamais ${{ inputs.date }} dans un run: (script injection)
+    # vide sur le cron : les scripts retombent sur maintenant
+    env:
+      RADAR_DATE: ${{ inputs.date }}
     steps:
       - uses: actions/checkout@v4
 
