@@ -26,8 +26,10 @@ def clone_or_local(portfolio_arg=None):
     subprocess.run(["git", "clone", clone_url, tempfile_path], check=True)
     return Path(tempfile_path)
 
-def run_generate(portfolio_path):
-    subprocess.run(["python3", str(SCRIPT_DIR / "generate_html.py"), str(portfolio_path)], check=True)
+def run_generate(portfolio_path, week, year):
+    # semaine passee explicitement : sinon generate_html recalcule la sienne et peut
+    # generer une autre semaine que celle chargee ici (ex. publish.py <chemin> 45 2026)
+    subprocess.run(["python3", str(SCRIPT_DIR / "generate_html.py"), str(portfolio_path), str(week), str(year)], check=True)
 
 
 def update_sitemap(portfolio_path, enriched):
@@ -102,7 +104,7 @@ if __name__ == "__main__":
     enriched = load_enriched(year, week)
     print(f"Loaded week {enriched['week']} ({len(enriched['articles'])} articles)")
     portfolio_path = clone_or_local(portfolio_arg)
-    run_generate(portfolio_path)
+    run_generate(portfolio_path, enriched['week'], enriched['year'])
     print("Generated HTML files")
     update_sitemap(portfolio_path, enriched)
     print("Updated sitemap")

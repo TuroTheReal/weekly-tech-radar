@@ -259,6 +259,45 @@ def test_extract_json_sans_json_leve():
         return
     assert False, "une réponse sans JSON doit lever, pas renvoyer None"
 
+def _portfolio_avec_semaine_44(tmp):
+    # mini Portfolio : seule la page de la semaine 44 compte pour update_nav
+    for lang in ("en", "fr"):
+        d = Path(tmp) / lang / gh.TECH_RADAR_DIR
+        d.mkdir(parents=True)
+        (d / "2026-week-44.html").write_text(
+            '<nav><!-- RADAR_NAV -->\n<a href="/x/2026-week-43.html" class="article-nav-link article-nav-prev">'
+            '<span>prev</span></a>\n<!-- /RADAR_NAV --></nav>')
+    return Path(tmp) / "fr" / gh.TECH_RADAR_DIR / "2026-week-44.html"
+
+def test_update_nav_relance_ne_double_pas_le_lien_next():
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        page = _portfolio_avec_semaine_44(tmp)
+        gh.update_nav({"week": 45, "year": 2026}, Path(tmp))
+        apres_un_run = page.read_text()
+        gh.update_nav({"week": 45, "year": 2026}, Path(tmp))
+        gh.update_nav({"week": 45, "year": 2026}, Path(tmp))
+        assert page.read_text() == apres_un_run, "une relance modifie la page"
+        assert apres_un_run.count("article-nav-next") == 1
+        assert apres_un_run.count("article-nav-prev") == 1, "le lien prev doit rester"
+
+def test_dates_reference_date_valide_et_refuse():
+    import os, dates
+    os.environ["RADAR_DATE"] = "2026-11-07"
+    try:
+        ref = dates.reference_date()
+        assert (ref.isocalendar()[1], ref.hour) == (45, 5)
+        for bad in ("07/11/2026", "2026-02-30", "2999-01-01"):
+            os.environ["RADAR_DATE"] = bad
+            try:
+                dates.reference_date()
+                assert False, f"{bad} aurait du planter"
+            except SystemExit:
+                pass
+    finally:
+        del os.environ["RADAR_DATE"]
+
+
 if __name__ == "__main__":
     import io, contextlib
     tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_")]
