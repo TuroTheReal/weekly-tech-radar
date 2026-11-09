@@ -1,6 +1,7 @@
 import json, os, re, string, sys, anthropic
 from pathlib import Path
 from datetime import datetime, timedelta
+from dates import reference_date
 
 SCRIPT_DIR = Path(__file__).parent
 # surchargeable le temps de comparer deux modeles sur un meme lot :
@@ -521,7 +522,7 @@ def check_lengths(articles):
 
 
 if __name__ == "__main__":
-    now = datetime.now()
+    now = reference_date()
     # semaine en argument comme generate_html.py : sert a rejouer un lot deja collecte,
     # seule facon de comparer deux versions du prompt a jeu d articles constant
     rejouer = "--rejouer" in sys.argv

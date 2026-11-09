@@ -2,6 +2,7 @@ import yaml, feedparser, json
 from datetime import datetime, timedelta
 from time import mktime
 from pathlib import Path
+from dates import reference_date
 
 SCRIPT_DIR = Path(__file__).parent
 
@@ -37,7 +38,7 @@ def filter_recent(articles):
         list: Articles de moins de 7 jours
     """
     recent_articles = []
-    now = datetime.now()
+    now = reference_date()
     week_ago = now - timedelta(days=7)
 
     for article in articles:
@@ -45,7 +46,8 @@ def filter_recent(articles):
         if not date_raw:
             continue
         date = datetime.fromtimestamp(mktime(date_raw))
-        if date < week_ago:
+        # borne haute : sans effet en run normal, indispensable en rattrapage (RADAR_DATE)
+        if date < week_ago or date > now:
             continue
         recent_articles.append(article)
     return recent_articles
@@ -56,7 +58,7 @@ def save_json(articles):
     Args:
         articles (list): Liste des articles formatés
     """
-    now = datetime.now()
+    now = reference_date()
     year, week, _ = now.isocalendar()
     week_ago = now - timedelta(days=7)
 
