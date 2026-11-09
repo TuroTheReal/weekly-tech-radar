@@ -259,25 +259,27 @@ def test_extract_json_sans_json_leve():
         return
     assert False, "une réponse sans JSON doit lever, pas renvoyer None"
 
-def _portfolio_avec_semaine_44(tmp):
-    # mini Portfolio : seule la page de la semaine 44 compte pour update_nav
+def _mini_portfolio(tmp, edition):
+    """Cree l'edition precedente de `edition` (EN + FR) avec son seul lien prev, renvoie la page FR."""
+    year, week = edition["year"], edition["week"] - 1
     for lang in ("en", "fr"):
         d = Path(tmp) / lang / gh.TECH_RADAR_DIR
         d.mkdir(parents=True)
-        (d / "2026-week-44.html").write_text(
-            '<nav><!-- RADAR_NAV -->\n<a href="/x/2026-week-43.html" class="article-nav-link article-nav-prev">'
+        (d / f"{year}-week-{week:02d}.html").write_text(
+            f'<nav><!-- RADAR_NAV -->\n<a href="/x/{year}-week-{week - 1:02d}.html" class="article-nav-link article-nav-prev">'
             '<span>prev</span></a>\n<!-- /RADAR_NAV --></nav>')
-    return Path(tmp) / "fr" / gh.TECH_RADAR_DIR / "2026-week-44.html"
+    return Path(tmp) / "fr" / gh.TECH_RADAR_DIR / f"{year}-week-{week:02d}.html"
 
 def test_update_nav_relance_ne_double_pas_le_lien_next():
     import tempfile
+    edition = {"week": 10, "year": 2026}
     with tempfile.TemporaryDirectory() as tmp:
-        page = _portfolio_avec_semaine_44(tmp)
-        gh.update_nav({"week": 45, "year": 2026}, Path(tmp))
-        apres_un_run = page.read_text()
-        gh.update_nav({"week": 45, "year": 2026}, Path(tmp))
-        gh.update_nav({"week": 45, "year": 2026}, Path(tmp))
-        assert page.read_text() == apres_un_run, "une relance modifie la page"
+        page_precedente = _mini_portfolio(tmp, edition)
+        gh.update_nav(edition, Path(tmp))
+        apres_un_run = page_precedente.read_text()
+        gh.update_nav(edition, Path(tmp))
+        gh.update_nav(edition, Path(tmp))
+        assert page_precedente.read_text() == apres_un_run, "une relance modifie la page"
         assert apres_un_run.count("article-nav-next") == 1
         assert apres_un_run.count("article-nav-prev") == 1, "le lien prev doit rester"
 
